@@ -10,7 +10,8 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
 - A reorderable list of timers, each showing a live duration badge and a label.
 - Count up from a past date or down towards a future one — the direction is derived from the
   date, and a countdown flips to a count-up on its own when the event arrives.
-- Stop and resume without losing accrued time, or restart from zero.
+- Stop and resume without losing accrued time, or restart from zero — every restart is logged with
+  how long that run lasted, alongside a longest-run summary.
 - Per-timer display format: tick any combination of years, months, weeks, days and the clock, and
   the badge counts in exactly those units — `2w 6d`, `23y 60d`, `48:00:00`.
 - Categories: file a timer under a named, coloured category — from the create form, or from the
@@ -61,7 +62,7 @@ src/
     settings.tsx      Settings menu
     settings/         Appearance, categories, timer defaults, display format, data, about
     timer/[id].tsx    Timer detail
-    timer/[id]/       Edit, display format, category, restart history (stub),
+    timer/[id]/       Edit, display format, category, restart history,
                       notifications (stub)
   components/       Duration badge, timer row, color/format/category pickers, shared form
     settings/         Flat list, row, switch row, checkbox row, inline picker row
@@ -100,5 +101,4 @@ Three details worth knowing before you change things:
 
 ## Not yet implemented
 
-Notifications are stored as a per-timer preference but never delivered, restart history is an empty
-screen, and there is no cloud sync.
+Notifications are stored as a per-timer preference but never delivered, and there is no cloud sync.

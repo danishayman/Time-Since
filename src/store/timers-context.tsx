@@ -10,8 +10,10 @@ import {
 } from 'react';
 
 import { loadTimers, saveTimers } from '@/store/storage';
-import type { Timer, TimerDraft, TimerFormat } from '@/types/timer';
+import type { Restart, Timer, TimerDraft, TimerFormat } from '@/types/timer';
+import { signedElapsedMs } from '@/utils/elapsed';
 import { DEFAULT_FORMAT, normalizeFormat } from '@/utils/format-duration';
+import { appendRestart } from '@/utils/restarts';
 import { currentTick } from '@/utils/ticker';
 
 type State = {
@@ -34,6 +36,7 @@ type Action =
   | { type: 'setFormatAll'; format: TimerFormat }
   | { type: 'import'; timers: Timer[]; mode: ImportMode }
   | { type: 'clearCategory'; categoryId: string }
+  | { type: 'clearRestarts'; id: string }
   | { type: 'clear' };
 
 /** Whether an imported backup is appended to the list or replaces it. */
@@ -74,6 +77,7 @@ function createTimer(draft: TimerDraft, order: number): Timer {
     notificationsEnabled: false,
     format: draft.format ? normalizeFormat(draft.format) : DEFAULT_FORMAT,
     categoryId: draft.categoryId,
+    restarts: [],
   };
 }
 
@@ -114,14 +118,18 @@ function reducer(state: State, action: Action): State {
     case 'restart':
       return mapTimer(state, action.id, (timer) => {
         // The ticker's value, not the wall clock, so the badge reads a clean
-        // zero rather than a fraction of a second short of it.
-        const nowIso = new Date(currentTick()).toISOString();
+        // zero rather than a fraction of a second short of it, and the logged
+        // run matches the reading the user was looking at when they tapped.
+        const now = currentTick();
+        const nowIso = new Date(now).toISOString();
+        const entry: Restart = { at: nowIso, lastedMs: signedElapsedMs(timer, now) };
         return {
           ...timer,
           startDateTime: nowIso,
           runningSince: nowIso,
           accumulatedMs: 0,
           isRunning: true,
+          restarts: appendRestart(timer.restarts, entry),
         };
       });
 
@@ -197,6 +205,9 @@ function reducer(state: State, action: Action): State {
         ),
       };
 
+    case 'clearRestarts':
+      return mapTimer(state, action.id, (timer) => ({ ...timer, restarts: [] }));
+
     case 'clear':
       return { ...state, timers: [] };
   }
@@ -218,6 +229,7 @@ type TimersContextValue = {
   setFormatAll: (format: TimerFormat) => void;
   importTimers: (timers: Timer[], mode: ImportMode) => void;
   clearCategory: (categoryId: string) => void;
+  clearRestarts: (id: string) => void;
   clearTimers: () => void;
 };
 
@@ -276,6 +288,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       setFormatAll: (format) => dispatch({ type: 'setFormatAll', format }),
       importTimers: (timers, mode) => dispatch({ type: 'import', timers, mode }),
       clearCategory: (categoryId) => dispatch({ type: 'clearCategory', categoryId }),
+      clearRestarts: (id) => dispatch({ type: 'clearRestarts', id }),
       clearTimers: () => dispatch({ type: 'clear' }),
     }),
     [state.timers, state.hydrated]

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CategoryChip } from '@/components/category-chip';
+import { contrastingTextColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Category } from '@/types/category';
@@ -44,23 +45,25 @@ export function CategoryFilter({ categories, value, onChange, onAdd }: Props) {
           />
         ))}
 
-        {/* An action rather than a filter, so it is never selectable and keeps
-            the outline treatment whatever is filtered. */}
+        {/* Filled and round: an action rather than a filter, so it reads as a
+            button instead of a chip that happens to be unselected. */}
         <Pressable
           onPress={onAdd}
           accessibilityRole="button"
           accessibilityLabel="New category"
           style={({ pressed }) => [
             styles.add,
-            { borderColor: theme.border, backgroundColor: theme.background },
+            { backgroundColor: theme.text },
             pressed && styles.pressed,
           ]}>
-          <Ionicons name="add" size={20} color={theme.textSecondary} />
+          <Ionicons name="add" size={20} color={contrastingTextColor(theme.text)} />
         </Pressable>
       </ScrollView>
     </View>
   );
 }
+
+const CHIP_HEIGHT = 20 + Spacing.two * 2 + 2;
 
 const styles = StyleSheet.create({
   container: {
@@ -73,11 +76,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   add: {
-    // Matches `CategoryChip`'s pill, sized for an icon instead of a label.
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.four,
-    borderWidth: 1,
+    // A circle the same height as a chip: chips are 20px of line height plus
+    // Spacing.two above and below, inside a 1px border.
+    width: CHIP_HEIGHT,
+    height: CHIP_HEIGHT,
+    borderRadius: CHIP_HEIGHT / 2,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   pressed: {

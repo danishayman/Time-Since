@@ -15,6 +15,17 @@ export type TimerFormat = DurationUnit[];
 /** Counting up from a past event, or down towards a future one. */
 export type Direction = 'since' | 'until';
 
+/** One entry in a timer's restart history. */
+export type Restart = {
+  /** ISO timestamp of the moment the timer was restarted. */
+  at: string;
+  /**
+   * What the timer read at that moment, so the history shows how long each run
+   * lasted. Negative if the timer was still counting down to its event.
+   */
+  lastedMs: number;
+};
+
 export type Timer = {
   id: string;
   label: string;
@@ -44,6 +55,12 @@ export type Timer = {
    * cleaned up eagerly — see `categoryOf`.
    */
   categoryId: string | null;
+  /**
+   * Every restart, oldest first. Capped by `MAX_RESTARTS` — the whole timer
+   * list is rewritten to storage as one blob on each change, so an unbounded
+   * log would make every save progressively more expensive.
+   */
+  restarts: Restart[];
 };
 
 /**

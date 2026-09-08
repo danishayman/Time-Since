@@ -31,6 +31,7 @@ export async function loadTimers(): Promise<Timer[]> {
       ...timer,
       format: normalizeFormat(timer.format),
       categoryId: timer.categoryId ?? null,
+      restarts: Array.isArray(timer.restarts) ? timer.restarts : [],
     }));
   } catch (error) {
     console.warn('[time-since] failed to load timers', error);

@@ -43,7 +43,8 @@ function isTimer(value: unknown): value is Timer {
     Number.isFinite(t.accumulatedMs) &&
     typeof t.order === 'number' &&
     typeof t.notificationsEnabled === 'boolean' &&
-    (t.categoryId === null || t.categoryId === undefined || typeof t.categoryId === 'string')
+    (t.categoryId === null || t.categoryId === undefined || typeof t.categoryId === 'string') &&
+    (t.restarts === undefined || Array.isArray(t.restarts))
     // `format` is not checked here: `normalizeFormat` accepts anything and
     // falls back to the default, including the single strings older builds
     // wrote.
@@ -109,6 +110,7 @@ export function parseBackup(raw: string): BackupContents {
       ...timer,
       format: normalizeFormat(timer.format),
       categoryId: timer.categoryId ?? null,
+      restarts: Array.isArray(timer.restarts) ? timer.restarts : [],
     })),
     categories,
   };

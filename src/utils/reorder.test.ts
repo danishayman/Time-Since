@@ -17,6 +17,7 @@ function timer(id: string, order: number): Timer {
     notificationsEnabled: false,
     format: ['days', 'time'],
     categoryId: null,
+    restarts: [],
   };
 }
 

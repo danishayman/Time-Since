@@ -22,6 +22,7 @@ function timer(id: string, categoryId: string | null): Timer {
     notificationsEnabled: false,
     format: ['days', 'time'],
     categoryId,
+    restarts: [],
   };
 }
 
