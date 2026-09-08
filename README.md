@@ -16,7 +16,7 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
 - Categories: file a timer under a named, coloured category — from the create form, or from the
   Category button on its detail screen — and narrow the list with the chips along the top.
 - A settings menu: theme override, categories, seconds on or off, clock and date format, defaults
-  for new timers, list ordering, haptics, and JSON export/import.
+  for new timers, haptics, and JSON export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
 
 ## Get started
@@ -67,13 +67,13 @@ src/
     settings/         Flat list, row, switch row, checkbox row, inline picker row
   store/            Timers, categories and settings contexts + reducers, AsyncStorage persistence
   hooks/            Resolved color scheme, timestamp formatter
-  utils/            Duration formatter and sorting (unit-tested), category
+  utils/            Duration formatter and drag reordering (unit-tested), category
                     resolution, elapsed math, shared clock, backup read/write, haptics
   types/            Timer, category and settings models
   constants/        Theme tokens and the color palette
 ```
 
-Four details worth knowing before you change things:
+Three details worth knowing before you change things:
 
 - **The clock lives in `src/utils/ticker.ts`.** It is a single app-wide one-second interval that
   only `DurationBadge` subscribes to, so a tick re-renders the badge text and nothing else. Adding
@@ -93,11 +93,10 @@ Four details worth knowing before you change things:
   uncategorised. That is what lets a category be deleted without cascading through every timer, and
   lets a backup be imported without the categories it was exported with. The `clearCategory` action
   exists only to stop dead ids accumulating in storage — nothing depends on it running.
-- **Only the manual sort order is stored.** Every other list order in settings is derived at render
-  time by `sortTimers` and never written back, so switching away and back restores the arrangement
-  the user dragged. Dragging is disabled while a derived order is active, and while a category chip
-  is filtering the list `globalReorderIndices` maps a drag back onto positions in the stored array,
-  so reordering a filtered view leaves everything outside the filter where it was.
+- **The list is only ever in the order you dragged it into.** `Timer.order` is the single source of
+  truth. While a category chip is filtering the list a drag reports positions in the filtered view,
+  so `globalReorderIndices` maps them back onto positions in the stored array — reordering a
+  filtered view leaves everything outside the filter where it was.
 
 ## Not yet implemented
 

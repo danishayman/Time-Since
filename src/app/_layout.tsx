@@ -1,15 +1,24 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useResolvedScheme } from '@/hooks/use-theme';
+import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
 import { CategoriesProvider, useCategories } from '@/store/categories-context';
 import { SettingsProvider, useSettings } from '@/store/settings-context';
 import { TimersProvider, useTimers } from '@/store/timers-context';
 import { setTickMs } from '@/utils/ticker';
 
 SplashScreen.preventAutoHideAsync();
+
+// `react-native-reorderable-list` still calls `InteractionManager`, which React
+// Native 0.86 deprecated, so every list mount raises a warning we cannot act on
+// from here — 0.18.1 is the latest release and the call is in its own source.
+// This hides the notice, not the problem: drop the line once the library moves
+// off it, and check before assuming any other InteractionManager warning is the
+// same one.
+LogBox.ignoreLogs(['InteractionManager has been deprecated']);
 
 /** A minute is plenty once the seconds are hidden, and much cheaper. */
 const TICK_WITH_SECONDS_MS = 1000;
@@ -38,14 +47,32 @@ function SplashGate() {
 
 function RootNavigator() {
   const scheme = useResolvedScheme();
+  const theme = useTheme();
   const { settings } = useSettings();
 
   useEffect(() => {
     setTickMs(settings.showSeconds ? TICK_WITH_SECONDS_MS : TICK_WITHOUT_SECONDS_MS);
   }, [settings.showSeconds]);
 
+  // The stock navigation themes hard-code their own greys, which would leave
+  // the header a different shade from the screen under it. Overriding the four
+  // colours the header actually paints with keeps the two in step, whatever the
+  // palette is. `card` matches `background` so the header reads as part of the
+  // screen, separated only by the hairline the flat lists already use.
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: theme.background,
+      card: theme.background,
+      text: theme.text,
+      border: theme.border,
+    },
+  };
+
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <SplashGate />
       <Stack>
         <Stack.Screen name="index" options={{ title: 'Time Since' }} />

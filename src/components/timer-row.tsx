@@ -11,12 +11,8 @@ import type { Timer } from '@/types/timer';
 type Props = {
   timer: Timer;
   onPress: () => void;
-  /**
-   * Starts a drag; wired to the reorderable list by the caller. Omitted when
-   * the list is sorted automatically, which also hides the handle — dragging a
-   * derived order would write meaningless positions back to the store.
-   */
-  onDragStart?: () => void;
+  /** Starts a drag; wired to the reorderable list by the caller. */
+  onDragStart: () => void;
   isDragging?: boolean;
   /**
    * Shown as a coloured dot and name under the label. Left off in the grouped
@@ -36,16 +32,14 @@ export function TimerRow({ timer, onPress, onDragStart, isDragging = false, cate
         { backgroundColor: theme.background, borderBottomColor: theme.border },
         (pressed || isDragging) && { backgroundColor: theme.backgroundElement },
       ]}>
-      {onDragStart && (
-        <Pressable
-          onPressIn={onDragStart}
-          hitSlop={Spacing.two}
-          accessibilityLabel={`Reorder ${timer.label}`}
-          accessibilityRole="button"
-          style={styles.handle}>
-          <Ionicons name="reorder-two" size={22} color={theme.textSecondary} />
-        </Pressable>
-      )}
+      <Pressable
+        onPressIn={onDragStart}
+        hitSlop={Spacing.two}
+        accessibilityLabel={`Reorder ${timer.label}`}
+        accessibilityRole="button"
+        style={styles.handle}>
+        <Ionicons name="reorder-two" size={22} color={theme.textSecondary} />
+      </Pressable>
 
       <DurationBadge timer={timer} />
 

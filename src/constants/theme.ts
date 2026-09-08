@@ -17,13 +17,17 @@ export const Colors = {
     border: '#E4E4E9',
     danger: '#D93F30',
   },
+  // A soft charcoal rather than pure black: OLED black makes the badge colours
+  // glare and shows smearing as the list scrolls. Each surface steps about ten
+  // points lighter than the one below it, which is enough separation to read
+  // without turning into visible banding.
   dark: {
     text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
+    background: '#16171A',
+    backgroundElement: '#232529',
+    backgroundSelected: '#2F3238',
     textSecondary: '#B0B4BA',
-    border: '#2B2D31',
+    border: '#2C2E33',
     danger: '#FF6B5E',
   },
 } as const;

@@ -4,25 +4,19 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ColorPicker } from '@/components/color-picker';
 import { SettingsList } from '@/components/settings/settings-list';
-import { SettingsPickerRow } from '@/components/settings/settings-picker-row';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
-import { SORT_LABELS, type SortMode } from '@/types/settings';
 import { describeFormat } from '@/utils/format-duration';
 import { successFeedback, tapFeedback } from '@/utils/haptics';
-import { optionsFrom } from '@/utils/picker-options';
-
-const SORT_OPTIONS = optionsFrom<SortMode>(SORT_LABELS);
 
 export default function TimerDefaultsScreen() {
   const router = useRouter();
   const { settings, setSetting } = useSettings();
   const { timers, setFormatAll } = useTimers();
   const [colorOpen, setColorOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
 
   const { haptics } = settings;
 
@@ -87,24 +81,6 @@ export default function TimerDefaultsScreen() {
               </View>
             )}
           </View>
-
-          <SettingsPickerRow
-            icon="swap-vertical-outline"
-            label="List order"
-            description="Manual keeps the order you drag rows into"
-            options={SORT_OPTIONS}
-            value={settings.sortMode}
-            onChange={(value) => {
-              tapFeedback(haptics);
-              setSetting('sortMode', value);
-              setSortOpen(false);
-            }}
-            expanded={sortOpen}
-            onToggle={() => {
-              tapFeedback(haptics);
-              setSortOpen((open) => !open);
-            }}
-          />
 
           <SettingsRow
             icon="albums-outline"

@@ -19,22 +19,13 @@ import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
 import type { Timer } from '@/types/timer';
 import { categoryOf, resolveFilter } from '@/utils/categories';
-import { globalReorderIndices, sortTimers } from '@/utils/sort-timers';
-import { useNowSnapshot } from '@/utils/ticker';
+import { globalReorderIndices } from '@/utils/reorder';
 
 /**
  * Wraps `TimerRow` so the drag hooks — which must run inside a list cell — stay
  * out of the presentational component.
  */
-function TimerListItem({
-  timer,
-  draggable,
-  showCategory,
-}: {
-  timer: Timer;
-  draggable: boolean;
-  showCategory: boolean;
-}) {
+function TimerListItem({ timer, showCategory }: { timer: Timer; showCategory: boolean }) {
   const router = useRouter();
   const { categories } = useCategories();
   const drag = useReorderableDrag();
@@ -45,7 +36,7 @@ function TimerListItem({
       timer={timer}
       category={showCategory ? categoryOf(timer, categories) : undefined}
       isDragging={isActive}
-      onDragStart={draggable ? drag : undefined}
+      onDragStart={drag}
       onPress={() => router.push({ pathname: '/timer/[id]', params: { id: timer.id } })}
     />
   );
@@ -72,19 +63,12 @@ export default function HomeScreen() {
   const { timers, reorderTimers } = useTimers();
   const { categories } = useCategories();
   const { settings, setSetting } = useSettings();
-  // Reads the clock without subscribing to it: ordering by elapsed time needs a
-  // `now`, but every timer advances at the same rate, so the ranking only has
-  // to be recomputed when the list itself changes.
-  const now = useNowSnapshot();
 
   // A filter naming a category that has since been deleted falls back to "All".
   const activeFilter = resolveFilter(settings.categoryFilter, categories);
-  const filtered = activeFilter
+  const visible = activeFilter
     ? timers.filter((timer) => categoryOf(timer, categories)?.id === activeFilter.id)
     : timers;
-
-  const manual = settings.sortMode === 'manual';
-  const visible = sortTimers(filtered, settings.sortMode, now);
 
   /**
    * A drag reports positions in the visible list, which is only a subsequence
@@ -92,9 +76,6 @@ export default function HomeScreen() {
    * before the store acts on them.
    */
   const handleReorder = ({ from, to }: ReorderableListReorderEvent) => {
-    if (!manual) {
-      return;
-    }
     const indices = globalReorderIndices(timers, visible, from, to);
     if (indices) {
       reorderTimers(indices.from, indices.to);
@@ -153,7 +134,6 @@ export default function HomeScreen() {
         renderItem={({ item }) => (
           <TimerListItem
             timer={item}
-            draggable={manual}
             // Inside a filter every row would name the same category, so the
             // label only earns its place on the unfiltered list.
             showCategory={!activeFilter && categories.length > 0}
