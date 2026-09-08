@@ -1,62 +1,92 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import ReorderableList, {
+  useIsActive,
+  useReorderableDrag,
+  type ReorderableListReorderEvent,
+} from 'react-native-reorderable-list';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { Fab } from '@/components/fab';
+import { HeaderButton } from '@/components/header-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { TimerRow } from '@/components/timer-row';
+import { Spacing } from '@/constants/theme';
+import { useTimers } from '@/store/timers-context';
+import type { Timer } from '@/types/timer';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+/**
+ * Wraps `TimerRow` so the drag hooks — which must run inside a list cell — stay
+ * out of the presentational component.
+ */
+function TimerListItem({ timer }: { timer: Timer }) {
+  const router = useRouter();
+  const drag = useReorderableDrag();
+  const isActive = useIsActive();
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <TimerRow
+      timer={timer}
+      isDragging={isActive}
+      onDragStart={drag}
+      onPress={() => router.push({ pathname: '/timer/[id]', params: { id: timer.id } })}
+    />
+  );
+}
+
+function EmptyState() {
+  return (
+    <View style={styles.empty}>
+      <ThemedText type="subtitle" style={styles.emptyTitle}>
+        No timers yet
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.emptyTitle}>
+        Tap + to track time since — or until — something that matters.
+      </ThemedText>
+    </View>
   );
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { timers, reorderTimers } = useTimers();
+
+  const handleReorder = ({ from, to }: ReorderableListReorderEvent) => reorderTimers(from, to);
+
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <HeaderButton
+              icon="menu"
+              accessibilityLabel="Settings"
+              onPress={() => router.push('/settings')}
+            />
+          ),
+        }}
+      />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      <ReorderableList
+        data={timers}
+        keyExtractor={(timer) => timer.id}
+        renderItem={({ item }) => <TimerListItem timer={item} />}
+        onReorder={handleReorder}
+        ListEmptyComponent={EmptyState}
+        contentContainerStyle={[
+          styles.listContent,
+          timers.length === 0 && styles.listContentEmpty,
+        ]}
+      />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+      <Fab
+        accessibilityLabel="New timer"
+        onPress={() => router.push('/new')}
+        bottom={insets.bottom + Spacing.four}
+        right={Spacing.four}
+      />
     </ThemedView>
   );
 }
@@ -64,35 +94,20 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  listContent: {
+    paddingBottom: 96,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
     justifyContent: 'center',
-    flexDirection: 'row',
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
+  empty: {
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
+    gap: Spacing.two,
     paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
   },
-  title: {
+  emptyTitle: {
     textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
   },
 });
