@@ -3,17 +3,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { CategoryPicker } from '@/components/category-picker';
 import { ColorPicker } from '@/components/color-picker';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatTimestamp } from '@/utils/elapsed';
+import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
 
 export type TimerFormValues = {
   label: string;
   color: string;
   /** ISO timestamp, or null while the user has not picked a date yet. */
   startDateTime: string | null;
+  /** Category id, or null for none. */
+  categoryId: string | null;
 };
 
 type Props = {
@@ -30,6 +33,7 @@ type AndroidStep = 'date' | 'time' | null;
 
 export function TimerForm({ values, onChange }: Props) {
   const theme = useTheme();
+  const formatTimestamp = useTimestampFormatter();
   const [androidStep, setAndroidStep] = useState<AndroidStep>(null);
   const [showIosPicker, setShowIosPicker] = useState(false);
   const [draftDate, setDraftDate] = useState<Date>(() =>
@@ -91,6 +95,14 @@ export function TimerForm({ values, onChange }: Props) {
         Choose color
       </ThemedText>
       <ColorPicker value={values.color} onChange={(color) => set({ color })} />
+
+      <ThemedText type="default" style={styles.sectionTitle}>
+        Category
+      </ThemedText>
+      <CategoryPicker
+        value={values.categoryId}
+        onChange={(categoryId) => set({ categoryId })}
+      />
 
       <View style={styles.dateSection}>
         <Pressable

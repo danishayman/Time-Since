@@ -8,16 +8,13 @@ import { HeaderButton } from '@/components/header-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
+import { useSettings } from '@/store/settings-context';
 import { useTimer, useTimers } from '@/store/timers-context';
-import type { DisplayFormat, Timer } from '@/types/timer';
-import { directionOf, formatTimestamp, signedElapsedMs } from '@/utils/elapsed';
-import { FORMAT_LABELS, formatDuration } from '@/utils/format-duration';
-
-/**
- * Exactly three, because Android alerts cap out at three buttons — the alert is
- * dismissed with the back gesture rather than a fourth Cancel button.
- */
-const FORMAT_OPTIONS: DisplayFormat[] = ['auto', 'days-time', 'years-days'];
+import type { Timer } from '@/types/timer';
+import { directionOf, signedElapsedMs } from '@/utils/elapsed';
+import { formatDuration } from '@/utils/format-duration';
+import { successFeedback, tapFeedback, warningFeedback } from '@/utils/haptics';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -32,7 +29,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function TimerDetail({ timer }: { timer: Timer }) {
   const router = useRouter();
-  const { restartTimer, stopTimer, resumeTimer, removeTimer, setFormat } = useTimers();
+  const { restartTimer, stopTimer, resumeTimer, removeTimer } = useTimers();
+  const { settings } = useSettings();
+  const formatTimestamp = useTimestampFormatter();
+  const { haptics } = settings;
 
   const handleShare = () => {
     // Read the clock once at share time rather than subscribing this screen to
@@ -45,18 +45,27 @@ function TimerDetail({ timer }: { timer: Timer }) {
     });
   };
 
-  const handleFormat = () => {
+  const handleRestart = () => {
+    warningFeedback(haptics);
     Alert.alert(
-      'Display format',
-      'How should this duration be shown?',
-      FORMAT_OPTIONS.map((format) => ({
-        text: timer.format === format ? `${FORMAT_LABELS[format]} (current)` : FORMAT_LABELS[format],
-        onPress: () => setFormat(timer.id, format),
-      }))
+      'Restart timer',
+      `Restart ${timer.label} from zero? The time accrued so far is discarded and cannot be recovered.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restart',
+          style: 'destructive',
+          onPress: () => {
+            successFeedback(haptics);
+            restartTimer(timer.id);
+          },
+        },
+      ]
     );
   };
 
   const handleDelete = () => {
+    warningFeedback(haptics);
     Alert.alert('Delete timer', `Delete ${timer.label}? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -97,18 +106,24 @@ function TimerDetail({ timer }: { timer: Timer }) {
       </View>
 
       <Section title="Actions">
-        <ActionButton icon="refresh" label="Restart" onPress={() => restartTimer(timer.id)} />
+        <ActionButton icon="refresh" label="Restart" onPress={handleRestart} />
         <ActionButton
           icon="play"
           label="Resume"
           disabled={timer.isRunning}
-          onPress={() => resumeTimer(timer.id)}
+          onPress={() => {
+            tapFeedback(haptics);
+            resumeTimer(timer.id);
+          }}
         />
         <ActionButton
           icon="square-outline"
           label="Stop"
           disabled={!timer.isRunning}
-          onPress={() => stopTimer(timer.id)}
+          onPress={() => {
+            tapFeedback(haptics);
+            stopTimer(timer.id);
+          }}
         />
       </Section>
 
@@ -120,7 +135,13 @@ function TimerDetail({ timer }: { timer: Timer }) {
             router.push({ pathname: '/timer/[id]/edit', params: { id: timer.id } })
           }
         />
-        <ActionButton icon="stopwatch-outline" label="Format" onPress={handleFormat} />
+        <ActionButton
+          icon="stopwatch-outline"
+          label="Format"
+          onPress={() =>
+            router.push({ pathname: '/timer/[id]/format', params: { id: timer.id } })
+          }
+        />
         <ActionButton icon="trash-outline" label="Delete" destructive onPress={handleDelete} />
       </Section>
 

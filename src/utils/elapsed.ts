@@ -1,3 +1,4 @@
+import type { ClockFormat, DateOrder } from '@/types/settings';
 import type { Direction, Timer } from '@/types/timer';
 
 /**
@@ -25,10 +26,42 @@ function pad(value: number): string {
   return value.toString().padStart(2, '0');
 }
 
-/** `DD/MM/YYYY HH:mm:ss`, as shown in the detail screen footer. */
-export function formatTimestamp(iso: string, withSeconds = true): string {
+export type TimestampOptions = {
+  withSeconds?: boolean;
+  clockFormat?: ClockFormat;
+  dateOrder?: DateOrder;
+};
+
+/**
+ * A wall-clock timestamp for display. Kept pure and defaulted to the format the
+ * app used before it was configurable, so tests and non-React callers do not
+ * have to reach for the settings store; screens use `useTimestampFormatter`
+ * instead, which binds the user's choices in.
+ */
+export function formatTimestamp(iso: string, options: TimestampOptions = {}): string {
+  const { withSeconds = true, clockFormat = '24h', dateOrder = 'dmy' } = options;
   const date = new Date(iso);
-  const day = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
-  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  return withSeconds ? `${day} ${time}:${pad(date.getSeconds())}` : `${day} ${time}`;
+
+  const day = pad(date.getDate());
+  const month = pad(date.getMonth() + 1);
+  const year = date.getFullYear();
+
+  const datePart =
+    dateOrder === 'mdy'
+      ? `${month}/${day}/${year}`
+      : dateOrder === 'ymd'
+        ? `${year}-${month}-${day}`
+        : `${day}/${month}/${year}`;
+
+  const hours = date.getHours();
+  const seconds = withSeconds ? `:${pad(date.getSeconds())}` : '';
+
+  if (clockFormat === '12h') {
+    const suffix = hours < 12 ? 'AM' : 'PM';
+    // Midnight and noon are 12, not 0.
+    const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+    return `${datePart} ${hour12}:${pad(date.getMinutes())}${seconds} ${suffix}`;
+  }
+
+  return `${datePart} ${pad(hours)}:${pad(date.getMinutes())}${seconds}`;
 }

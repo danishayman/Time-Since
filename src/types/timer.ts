@@ -1,10 +1,16 @@
 /**
- * How a duration is rendered in the badge.
- * - `auto`: days + time under a year, years + days at or beyond one year.
- * - `days-time`: always `{days}d {HH}:{MM}:{SS}`.
- * - `years-days`: always `{years}y {days}d`.
+ * A unit a duration can be counted in. `time` is the clock component,
+ * `{HH}:{MM}:{SS}`, and is always the smallest.
  */
-export type DisplayFormat = 'auto' | 'days-time' | 'years-days';
+export type DurationUnit = 'years' | 'months' | 'weeks' | 'days' | 'time';
+
+/**
+ * Which units a timer's badge is broken down into, largest first.
+ *
+ * Multi-select: picking `['weeks', 'days']` renders 20 days as `2w 6d`, while
+ * `['days']` alone renders it as `20d`. Never empty — see `normalizeFormat`.
+ */
+export type TimerFormat = DurationUnit[];
 
 /** Counting up from a past event, or down towards a future one. */
 export type Direction = 'since' | 'until';
@@ -31,8 +37,22 @@ export type Timer = {
   /** Manual sort position, lowest first. */
   order: number;
   notificationsEnabled: boolean;
-  format: DisplayFormat;
+  format: TimerFormat;
+  /**
+   * The category this timer is filed under, or `null` for none. An id that no
+   * longer matches a stored category reads as uncategorised rather than being
+   * cleaned up eagerly — see `categoryOf`.
+   */
+  categoryId: string | null;
 };
 
-/** The fields a user can edit through the create/edit form. */
-export type TimerDraft = Pick<Timer, 'label' | 'color' | 'startDateTime'>;
+/**
+ * The fields a user can edit through the create/edit form.
+ *
+ * `format` is only read when creating a timer — it carries the default from
+ * settings so the reducer never has to reach into the settings store. Editing
+ * an existing timer leaves its format alone.
+ */
+export type TimerDraft = Pick<Timer, 'label' | 'color' | 'startDateTime' | 'categoryId'> & {
+  format?: TimerFormat;
+};

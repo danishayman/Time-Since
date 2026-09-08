@@ -10,7 +10,8 @@ import {
 } from 'react';
 
 import { loadTimers, saveTimers } from '@/store/storage';
-import type { DisplayFormat, Timer, TimerDraft } from '@/types/timer';
+import type { Timer, TimerDraft, TimerFormat } from '@/types/timer';
+import { DEFAULT_FORMAT, normalizeFormat } from '@/utils/format-duration';
 
 type State = {
   timers: Timer[];
@@ -27,7 +28,14 @@ type Action =
   | { type: 'resume'; id: string }
   | { type: 'reorder'; from: number; to: number }
   | { type: 'setNotifications'; id: string; enabled: boolean }
-  | { type: 'setFormat'; id: string; format: DisplayFormat };
+  | { type: 'setFormat'; id: string; format: TimerFormat }
+  | { type: 'setFormatAll'; format: TimerFormat }
+  | { type: 'import'; timers: Timer[]; mode: ImportMode }
+  | { type: 'clearCategory'; categoryId: string }
+  | { type: 'clear' };
+
+/** Whether an imported backup is appended to the list or replaces it. */
+export type ImportMode = 'merge' | 'replace';
 
 const initialState: State = { timers: [], hydrated: false };
 
@@ -62,7 +70,8 @@ function createTimer(draft: TimerDraft, order: number): Timer {
     accumulatedMs: 0,
     order,
     notificationsEnabled: false,
-    format: 'auto',
+    format: draft.format ? normalizeFormat(draft.format) : DEFAULT_FORMAT,
+    categoryId: draft.categoryId,
   };
 }
 
@@ -77,7 +86,12 @@ function reducer(state: State, action: Action): State {
     case 'update':
       return mapTimer(state, action.id, (timer) => {
         if (timer.startDateTime === action.draft.startDateTime) {
-          return { ...timer, label: action.draft.label.trim(), color: action.draft.color };
+          return {
+            ...timer,
+            label: action.draft.label.trim(),
+            color: action.draft.color,
+            categoryId: action.draft.categoryId,
+          };
         }
         // Moving the event date re-bases the elapsed time on the new date, so
         // any time accrued against the old one is discarded rather than added.
@@ -85,6 +99,7 @@ function reducer(state: State, action: Action): State {
           ...timer,
           label: action.draft.label.trim(),
           color: action.draft.color,
+          categoryId: action.draft.categoryId,
           startDateTime: action.draft.startDateTime,
           accumulatedMs: 0,
           runningSince: timer.isRunning ? action.draft.startDateTime : null,
@@ -146,6 +161,33 @@ function reducer(state: State, action: Action): State {
 
     case 'setFormat':
       return mapTimer(state, action.id, (timer) => ({ ...timer, format: action.format }));
+
+    case 'setFormatAll':
+      return {
+        ...state,
+        timers: state.timers.map((timer) => ({ ...timer, format: action.format })),
+      };
+
+    case 'import':
+      // Merged rows arrive already re-identified by `reidentifyBackup`, which
+      // has to mint the ids itself so it can remap `categoryId` at the same
+      // time. This reducer only decides where they land.
+      return action.mode === 'replace'
+        ? { ...state, timers: reindex(sortByOrder(action.timers)) }
+        : { ...state, timers: reindex([...state.timers, ...sortByOrder(action.timers)]) };
+
+    case 'clearCategory':
+      // Housekeeping only: an unresolvable id already reads as uncategorised,
+      // so this just stops deleted ids lingering in storage.
+      return {
+        ...state,
+        timers: state.timers.map((timer) =>
+          timer.categoryId === action.categoryId ? { ...timer, categoryId: null } : timer
+        ),
+      };
+
+    case 'clear':
+      return { ...state, timers: [] };
   }
 }
 
@@ -160,7 +202,11 @@ type TimersContextValue = {
   resumeTimer: (id: string) => void;
   reorderTimers: (from: number, to: number) => void;
   setNotificationsEnabled: (id: string, enabled: boolean) => void;
-  setFormat: (id: string, format: DisplayFormat) => void;
+  setFormat: (id: string, format: TimerFormat) => void;
+  setFormatAll: (format: TimerFormat) => void;
+  importTimers: (timers: Timer[], mode: ImportMode) => void;
+  clearCategory: (categoryId: string) => void;
+  clearTimers: () => void;
 };
 
 const TimersContext = createContext<TimersContextValue | null>(null);
@@ -214,6 +260,10 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       setNotificationsEnabled: (id, enabled) =>
         dispatch({ type: 'setNotifications', id, enabled }),
       setFormat: (id, format) => dispatch({ type: 'setFormat', id, format }),
+      setFormatAll: (format) => dispatch({ type: 'setFormatAll', format }),
+      importTimers: (timers, mode) => dispatch({ type: 'import', timers, mode }),
+      clearCategory: (categoryId) => dispatch({ type: 'clearCategory', categoryId }),
+      clearTimers: () => dispatch({ type: 'clear' }),
     }),
     [state.timers, state.hydrated]
   );

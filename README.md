@@ -11,7 +11,12 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
 - Count up from a past date or down towards a future one — the direction is derived from the
   date, and a countdown flips to a count-up on its own when the event arrives.
 - Stop and resume without losing accrued time, or restart from zero.
-- Per-timer display format: automatic, `{days}d {HH}:{MM}:{SS}`, or `{years}y {days}d`.
+- Per-timer display format: tick any combination of years, months, weeks, days and the clock, and
+  the badge counts in exactly those units — `2w 6d`, `23y 60d`, `48:00:00`.
+- Categories: file a timer under a named, coloured category, filter the list with the chips at the
+  top, and let the unfiltered list break itself into a section per category.
+- A settings menu: theme override, categories, seconds on or off, clock and date format, defaults
+  for new timers, list ordering, haptics, and JSON export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
 
 ## Get started
@@ -53,26 +58,48 @@ src/
   app/              File-based routes
     index.tsx         Home — the timer list
     new.tsx           Create a timer
-    settings.tsx      Settings (stub)
+    settings.tsx      Settings menu
+    settings/         Appearance, categories, timer defaults, display format, data, about
     timer/[id].tsx    Timer detail
-    timer/[id]/       Edit, restart history (stub), notifications (stub)
-  components/       Duration badge, timer row, color picker, shared form
-  store/            Timers context + reducer, AsyncStorage persistence
-  utils/            Duration formatter (unit-tested), elapsed math, shared clock
-  types/            Timer model
+    timer/[id]/       Edit, display format, restart history (stub), notifications (stub)
+  components/       Duration badge, timer row, color/format/category pickers, shared form
+    settings/         Flat list, row, switch row, checkbox row, inline picker row
+  store/            Timers, categories and settings contexts + reducers, AsyncStorage persistence
+  hooks/            Resolved color scheme, timestamp formatter
+  utils/            Duration formatter, sorting and grouping (unit-tested), elapsed
+                    math, shared clock, backup read/write, haptics
+  types/            Timer, category and settings models
   constants/        Theme tokens and the color palette
 ```
 
-Two details worth knowing before you change things:
+Five details worth knowing before you change things:
 
 - **The clock lives in `src/utils/ticker.ts`.** It is a single app-wide one-second interval that
   only `DurationBadge` subscribes to, so a tick re-renders the badge text and nothing else. Adding
   a `useNow()` call to a row or a screen would re-render the whole list every second.
+  The period is settable — turning off "Show seconds" drops it to a minute — and `useNowSnapshot()`
+  reads the clock without subscribing, for callers that need a `now` but must not re-render on it.
 - **Elapsed time is derived from timestamps, never accumulated.** `signedElapsedMs` computes
   `accumulatedMs + (now - runningSince)`, which is what keeps the display correct after the app has
   been backgrounded or killed.
+- **A timer's format is a set of units, largest first.** `formatDuration` hands each selected unit
+  the remainder left by the one above it, and renders every unit that was ticked even when it is
+  still zero. `normalizeFormat` is the only way a format should be built: it drops unknown units,
+  reorders, refuses to return an empty set, and maps the single-string formats older builds stored
+  onto their unit equivalents.
+- **A timer's category is resolved lazily, never eagerly.** `categoryOf` returns nothing for a
+  `categoryId` that no longer matches a stored category, and everything downstream treats that as
+  uncategorised. That is what lets a category be deleted without cascading through every timer, and
+  lets a backup be imported without the categories it was exported with. The `clearCategory` action
+  exists only to stop dead ids accumulating in storage — nothing depends on it running.
+- **Only the manual sort order is stored.** Every other list order in settings is derived at render
+  time by `sortTimers` and never written back, so switching away and back restores the arrangement
+  the user dragged. Dragging is disabled while a derived order is active. In the grouped list each
+  section is its own `NestedReorderableList`, and `globalReorderIndices` maps a drag inside one back
+  onto positions in the stored array — so dragging reorders within a category but never moves a
+  timer between them.
 
 ## Not yet implemented
 
-Notifications are stored as a preference but never delivered, restart history is an empty screen,
-and there is no cloud sync.
+Notifications are stored as a per-timer preference but never delivered, restart history is an empty
+screen, and there is no cloud sync.

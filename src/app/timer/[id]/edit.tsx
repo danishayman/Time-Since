@@ -17,6 +17,7 @@ function EditForm({ timer }: { timer: Timer }) {
     label: timer.label,
     color: timer.color,
     startDateTime: timer.startDateTime,
+    categoryId: timer.categoryId,
   });
 
   const handleSave = () => {
@@ -28,6 +29,7 @@ function EditForm({ timer }: { timer: Timer }) {
       label: values.label,
       color: values.color,
       startDateTime: values.startDateTime ?? timer.startDateTime,
+      categoryId: values.categoryId,
     });
     router.back();
   };

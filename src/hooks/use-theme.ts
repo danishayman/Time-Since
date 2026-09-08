@@ -5,10 +5,25 @@
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useSettings } from '@/store/settings-context';
+
+/**
+ * The scheme actually painted: the user's override when they have set one,
+ * otherwise whatever the device reports.
+ *
+ * `useColorScheme` resolves to `null` before the device value is known, which
+ * is why this branches on `'dark'` rather than trusting the value as a key.
+ */
+export function useResolvedScheme(): 'light' | 'dark' {
+  const { settings } = useSettings();
+  const deviceScheme = useColorScheme();
+
+  if (settings.theme !== 'system') {
+    return settings.theme;
+  }
+  return deviceScheme === 'dark' ? 'dark' : 'light';
+}
 
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+  return Colors[useResolvedScheme()];
 }

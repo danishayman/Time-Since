@@ -1,72 +1,142 @@
 /// <reference types="jest" />
 
-import { DAYS_PER_YEAR, formatDuration } from '@/utils/format-duration';
+import {
+  DAYS_PER_MONTH,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  describeFormat,
+  formatDuration,
+  normalizeFormat,
+} from '@/utils/format-duration';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
+const WEEK = DAYS_PER_WEEK * DAY;
+const MONTH = DAYS_PER_MONTH * DAY;
 const YEAR = DAYS_PER_YEAR * DAY;
 
 describe('formatDuration', () => {
-  describe('auto format, under one year', () => {
+  describe('a single unit', () => {
     it('renders zero', () => {
-      expect(formatDuration(0)).toBe('0d 00:00:00');
+      expect(formatDuration(0, ['days', 'time'])).toBe('0d 00:00:00');
     });
 
-    it('zero-pads hours, minutes and seconds', () => {
-      expect(formatDuration(3 * HOUR + 4 * MINUTE + 5 * SECOND)).toBe('0d 03:04:05');
+    it('lets hours run past a day when days are not selected', () => {
+      expect(formatDuration(2 * DAY + 3 * HOUR, ['time'])).toBe('51:00:00');
     });
 
-    it('matches the reference example', () => {
-      expect(formatDuration(19 * DAY + 3 * HOUR + 54 * MINUTE + 34 * SECOND)).toBe('19d 03:54:34');
-    });
-
-    it('does not pad the day count', () => {
-      expect(formatDuration(412 * DAY, 'days-time')).toBe('412d 00:00:00');
+    it('counts whole days only when days are the only unit', () => {
+      expect(formatDuration(20 * DAY + 23 * HOUR, ['days'])).toBe('20d');
     });
 
     it('truncates sub-second remainders rather than rounding up', () => {
-      expect(formatDuration(1 * SECOND + 999)).toBe('0d 00:00:01');
+      expect(formatDuration(SECOND + 999, ['days', 'time'])).toBe('0d 00:00:01');
+    });
+  });
+
+  describe('several units', () => {
+    it('passes the remainder down from each unit to the next', () => {
+      expect(formatDuration(20 * DAY, ['weeks', 'days'])).toBe('2w 6d');
+    });
+
+    it('renders every unit at once', () => {
+      const ms = YEAR + 2 * MONTH + 3 * WEEK + 4 * DAY + 5 * HOUR + 6 * MINUTE + 7 * SECOND;
+      expect(formatDuration(ms, ['years', 'months', 'weeks', 'days', 'time'])).toBe(
+        '1y 2mo 3w 4d 05:06:07'
+      );
+    });
+
+    it('renders units largest first however they were picked', () => {
+      expect(formatDuration(20 * DAY, ['days', 'weeks'])).toBe('2w 6d');
+    });
+
+    it('zero-pads hours, minutes and seconds', () => {
+      expect(formatDuration(3 * HOUR + 4 * MINUTE + 5 * SECOND, ['days', 'time'])).toBe(
+        '0d 03:04:05'
+      );
     });
 
     it('rolls over to the next day exactly at the boundary', () => {
-      expect(formatDuration(DAY - SECOND)).toBe('0d 23:59:59');
-      expect(formatDuration(DAY)).toBe('1d 00:00:00');
+      expect(formatDuration(DAY - SECOND, ['days', 'time'])).toBe('0d 23:59:59');
+      expect(formatDuration(DAY, ['days', 'time'])).toBe('1d 00:00:00');
     });
   });
 
-  describe('auto format, one year and beyond', () => {
-    it('stays on days + time on the last day before a year', () => {
-      expect(formatDuration(YEAR - SECOND)).toBe('364d 23:59:59');
+  describe('empty units', () => {
+    it('renders a selected unit that is still zero rather than dropping it', () => {
+      expect(formatDuration(19 * DAY + 3 * HOUR, ['years', 'days', 'time'])).toBe(
+        '0y 19d 03:00:00'
+      );
     });
 
-    it('switches to years + days at exactly one year', () => {
-      expect(formatDuration(YEAR)).toBe('1y 0d');
+    it('fills the unit in once it has a value', () => {
+      expect(formatDuration(YEAR + 19 * DAY + 3 * HOUR, ['years', 'days', 'time'])).toBe(
+        '1y 19d 03:00:00'
+      );
     });
 
-    it('drops the time component and matches the reference example', () => {
-      expect(formatDuration(23 * YEAR + 175 * DAY + 7 * HOUR)).toBe('23y 175d');
+    it('renders every selected unit for a duration of zero', () => {
+      expect(formatDuration(0, ['years', 'months', 'weeks', 'days'])).toBe('0y 0mo 0w 0d');
     });
   });
 
-  describe('explicit format overrides', () => {
-    it('forces days + time past a year', () => {
-      expect(formatDuration(YEAR + 2 * HOUR, 'days-time')).toBe('365d 02:00:00');
+  describe('seconds hidden', () => {
+    it('drops the seconds from the clock', () => {
+      expect(formatDuration(19 * DAY + 3 * HOUR + 54 * MINUTE + 34 * SECOND, ['days', 'time'], false)).toBe(
+        '19d 03:54'
+      );
     });
 
-    it('forces years + days under a year', () => {
-      expect(formatDuration(19 * DAY, 'years-days')).toBe('0y 19d');
+    it('still truncates rather than rounding the minute up', () => {
+      expect(formatDuration(59 * SECOND, ['days', 'time'], false)).toBe('0d 00:00');
+    });
+
+    it('leaves date units untouched, having no seconds to drop', () => {
+      expect(formatDuration(2 * YEAR + 10 * DAY, ['years', 'days'], false)).toBe('2y 10d');
     });
   });
 
   describe('countdowns', () => {
     it('ignores the sign of a negative duration', () => {
-      expect(formatDuration(-(19 * DAY + 3 * HOUR))).toBe('19d 03:00:00');
+      expect(formatDuration(-(19 * DAY + 3 * HOUR), ['days', 'time'])).toBe('19d 03:00:00');
     });
 
-    it('formats a negative duration past a year the same as a positive one', () => {
-      expect(formatDuration(-(2 * YEAR + 10 * DAY))).toBe('2y 10d');
+    it('formats a negative duration the same as a positive one', () => {
+      expect(formatDuration(-(2 * YEAR + 10 * DAY), ['years', 'days'])).toBe('2y 10d');
     });
+  });
+});
+
+describe('normalizeFormat', () => {
+  it('maps the formats that predated multi-select', () => {
+    expect(normalizeFormat('auto')).toEqual(['days', 'time']);
+    expect(normalizeFormat('days-time')).toEqual(['days', 'time']);
+    expect(normalizeFormat('years-days')).toEqual(['years', 'days']);
+  });
+
+  it('sorts a selection largest first', () => {
+    expect(normalizeFormat(['time', 'years', 'days'])).toEqual(['years', 'days', 'time']);
+  });
+
+  it('drops unknown units', () => {
+    expect(normalizeFormat(['days', 'fortnights'])).toEqual(['days']);
+  });
+
+  it('removes duplicates', () => {
+    expect(normalizeFormat(['days', 'days', 'time'])).toEqual(['days', 'time']);
+  });
+
+  it('falls back to the default rather than returning nothing', () => {
+    expect(normalizeFormat([])).toEqual(['days', 'time']);
+    expect(normalizeFormat(undefined)).toEqual(['days', 'time']);
+    expect(normalizeFormat('nonsense')).toEqual(['days', 'time']);
+  });
+});
+
+describe('describeFormat', () => {
+  it('summarises a selection with short names', () => {
+    expect(describeFormat(['years', 'days', 'time'])).toBe('Years · Days · Time');
   });
 });

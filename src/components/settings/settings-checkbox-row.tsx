@@ -1,0 +1,75 @@
+import { Pressable, StyleSheet, View } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+
+type Props = {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+  /** Explains why the row cannot be unchecked right now. */
+  disabled?: boolean;
+};
+
+/**
+ * A full-width row with a checkbox, for settings where several choices can be
+ * on at once. `SettingsPickerRow` covers the one-of-many case instead.
+ */
+export function SettingsCheckboxRow({ label, checked, onToggle, disabled = false }: Props) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      onPress={onToggle}
+      disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked, disabled }}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && { backgroundColor: theme.backgroundElement },
+        disabled && styles.disabled,
+      ]}>
+      <ThemedText type="default" style={styles.label}>
+        {label}
+      </ThemedText>
+
+      <View style={[styles.box, { borderColor: checked ? theme.text : theme.textSecondary }]}>
+        {checked && <View style={[styles.mark, { backgroundColor: theme.text }]} />}
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    minHeight: 60,
+  },
+  disabled: {
+    opacity: 0.6,
+  },
+  label: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  box: {
+    width: 24,
+    height: 24,
+    borderRadius: Spacing.two,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mark: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+  },
+});
