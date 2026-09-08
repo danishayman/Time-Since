@@ -51,19 +51,23 @@ export function CategoryFilter({ categories, value, onChange, onAdd }: Props) {
           onPress={onAdd}
           accessibilityRole="button"
           accessibilityLabel="New category"
+          // Deliberately smaller than a chip, so the touch area is padded back
+          // out to something comfortable.
+          hitSlop={Spacing.two}
           style={({ pressed }) => [
             styles.add,
             { backgroundColor: theme.text },
             pressed && styles.pressed,
           ]}>
-          <Ionicons name="add" size={20} color={contrastingTextColor(theme.text)} />
+          <Ionicons name="add" size={16} color={contrastingTextColor(theme.text)} />
         </Pressable>
       </ScrollView>
     </View>
   );
 }
 
-const CHIP_HEIGHT = 20 + Spacing.two * 2 + 2;
+/** Smaller than a chip: it is an action tucked on the end, not another filter. */
+const ADD_SIZE = 28;
 
 const styles = StyleSheet.create({
   container: {
@@ -76,11 +80,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   add: {
-    // A circle the same height as a chip: chips are 20px of line height plus
-    // Spacing.two above and below, inside a 1px border.
-    width: CHIP_HEIGHT,
-    height: CHIP_HEIGHT,
-    borderRadius: CHIP_HEIGHT / 2,
+    width: ADD_SIZE,
+    height: ADD_SIZE,
+    borderRadius: ADD_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

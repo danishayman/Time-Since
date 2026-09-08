@@ -10,27 +10,46 @@ import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
 import { useSettings } from '@/store/settings-context';
 import { useTimer, useTimers } from '@/store/timers-context';
 import type { Timer } from '@/types/timer';
+import { signedElapsedMs } from '@/utils/elapsed';
 import { formatDuration } from '@/utils/format-duration';
 import { warningFeedback } from '@/utils/haptics';
-import { MAX_RESTARTS, restartStats } from '@/utils/restarts';
-import { useNowSnapshot } from '@/utils/ticker';
+import { MAX_RESTARTS, longestRunMs } from '@/utils/restarts';
+import { useNow } from '@/utils/ticker';
+
+/**
+ * A duration that ticks. The clock subscription lives down here rather than on
+ * the screen for the reason `DurationBadge` exists: a `useNow()` higher up would
+ * re-render the whole restart log every second to change two lines of text.
+ *
+ * With `longest`, it reports the best run including the one in progress, so the
+ * record updates the moment the current run overtakes it.
+ */
+function LiveDuration({ timer, longest = false }: { timer: Timer; longest?: boolean }) {
+  const now = useNow();
+
+  const currentMs = signedElapsedMs(timer, now);
+  const ms = longest ? longestRunMs(timer.restarts, currentMs) : currentMs;
+
+  return (
+    <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+      {formatDuration(ms, timer.format)}
+    </ThemedText>
+  );
+}
 
 function RestartHistory({ timer }: { timer: Timer }) {
   const { settings } = useSettings();
   const { clearRestarts } = useTimers();
   const formatTimestamp = useTimestampFormatter();
-  // Read without subscribing: the summary only has to be right when the screen
-  // renders, not tick while it is open.
-  const now = useNowSnapshot();
 
-  const stats = restartStats(timer, now);
-  const duration = (ms: number) => formatDuration(ms, timer.format, settings.showSeconds);
+  const count = timer.restarts.length;
+  const duration = (ms: number) => formatDuration(ms, timer.format);
 
   const handleClear = () => {
     warningFeedback(settings.haptics);
     Alert.alert(
       'Clear history',
-      `Forget all ${stats.count} restart${stats.count === 1 ? '' : 's'}? The timer itself keeps running.`,
+      `Forget all ${count} restart${count === 1 ? '' : 's'}? The timer itself keeps running.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Clear', style: 'destructive', onPress: () => clearRestarts(timer.id) },
@@ -41,12 +60,16 @@ function RestartHistory({ timer }: { timer: Timer }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <SettingsList>
-        <SettingsRow icon="refresh" label="Restarts" value={`${stats.count}`} />
-        <SettingsRow icon="trophy-outline" label="Longest run" value={duration(stats.longestMs)} />
-        <SettingsRow icon="play-outline" label="Current run" value={duration(stats.currentMs)} />
+        <SettingsRow icon="refresh" label="Restarts" value={`${count}`} />
+        <SettingsRow
+          icon="trophy-outline"
+          label="Longest run"
+          right={<LiveDuration timer={timer} longest />}
+        />
+        <SettingsRow icon="play-outline" label="Current run" right={<LiveDuration timer={timer} />} />
       </SettingsList>
 
-      {stats.count === 0 ? (
+      {count === 0 ? (
         <ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
           No restarts yet. Each time you restart this timer, how long it had run gets logged here.
         </ThemedText>
@@ -56,8 +79,7 @@ function RestartHistory({ timer }: { timer: Timer }) {
             HISTORY
           </ThemedText>
 
-          <SettingsList
-            footer={`Only the last ${MAX_RESTARTS} restarts are kept.`}>
+          <SettingsList footer={`Only the last ${MAX_RESTARTS} restarts are kept.`}>
             {/* Newest first: the most recent run is the one being compared
                 against, and the list would otherwise have to be scrolled to the
                 bottom to find it. */}

@@ -45,15 +45,6 @@ export const UNIT_LABELS: Record<DurationUnit, string> = {
   time: 'Hours, minutes and seconds',
 };
 
-/** Short names, for summarising a selection in a settings row. */
-export const UNIT_SHORT_LABELS: Record<DurationUnit, string> = {
-  years: 'Years',
-  months: 'Months',
-  weeks: 'Weeks',
-  days: 'Days',
-  time: 'Time',
-};
-
 /** What a brand new timer counts in, and the fallback for an empty selection. */
 export const DEFAULT_FORMAT: TimerFormat = ['days', 'time'];
 
@@ -111,11 +102,7 @@ function pad(value: number): string {
  * formatDuration(1_728_000_000, ['weeks', 'days'])   // '2w 6d'
  * ```
  */
-export function formatDuration(
-  ms: number,
-  format: TimerFormat = DEFAULT_FORMAT,
-  showSeconds = true
-): string {
+export function formatDuration(ms: number, format: TimerFormat = DEFAULT_FORMAT): string {
   const units = normalizeFormat(format);
   let remaining = Math.floor(Math.abs(ms) / MS_PER_SECOND);
 
@@ -124,8 +111,7 @@ export function formatDuration(
       if (unit === 'time') {
         const hours = Math.floor(remaining / SECONDS_PER_HOUR);
         const minutes = Math.floor((remaining % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-        const clock = `${pad(hours)}:${pad(minutes)}`;
-        return showSeconds ? `${clock}:${pad(remaining % SECONDS_PER_MINUTE)}` : clock;
+        return `${pad(hours)}:${pad(minutes)}:${pad(remaining % SECONDS_PER_MINUTE)}`;
       }
 
       const size = UNIT_SECONDS[unit];
@@ -134,11 +120,4 @@ export function formatDuration(
       return `${value}${UNIT_SUFFIX[unit]}`;
     })
     .join(' ');
-}
-
-/** One-line summary of a selection, for a settings row's right-hand value. */
-export function describeFormat(format: TimerFormat): string {
-  return normalizeFormat(format)
-    .map((unit) => UNIT_SHORT_LABELS[unit])
-    .join(' · ');
 }

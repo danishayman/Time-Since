@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { contrastingTextColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
-import { useSettings } from '@/store/settings-context';
 import type { Timer } from '@/types/timer';
 import { signedElapsedMs } from '@/utils/elapsed';
 import { formatDuration } from '@/utils/format-duration';
@@ -20,8 +19,7 @@ type Props = {
  */
 export function DurationBadge({ timer, size = 'row' }: Props) {
   const now = useNow();
-  const { settings } = useSettings();
-  const text = formatDuration(signedElapsedMs(timer, now), timer.format, settings.showSeconds);
+  const text = formatDuration(signedElapsedMs(timer, now), timer.format);
   const textColor = contrastingTextColor(timer.color);
 
   return (

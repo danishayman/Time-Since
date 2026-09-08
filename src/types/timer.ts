@@ -64,12 +64,7 @@ export type Timer = {
 };
 
 /**
- * The fields a user can edit through the create/edit form.
- *
- * `format` is only read when creating a timer — it carries the default from
- * settings so the reducer never has to reach into the settings store. Editing
- * an existing timer leaves its format alone.
+ * The fields a user can edit through the create/edit form. A new timer always
+ * starts on `DEFAULT_FORMAT`; the units are chosen per timer afterwards.
  */
-export type TimerDraft = Pick<Timer, 'label' | 'color' | 'startDateTime' | 'categoryId'> & {
-  format?: TimerFormat;
-};
+export type TimerDraft = Pick<Timer, 'label' | 'color' | 'startDateTime' | 'categoryId'>;

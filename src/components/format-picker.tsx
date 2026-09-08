@@ -5,7 +5,6 @@ import { SettingsList } from '@/components/settings/settings-list';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useSettings } from '@/store/settings-context';
 import type { DurationUnit, TimerFormat } from '@/types/timer';
 import { UNIT_LABELS, UNIT_ORDER, formatDuration, normalizeFormat } from '@/utils/format-duration';
 
@@ -23,7 +22,6 @@ type Props = {
  */
 export function FormatPicker({ value, onChange, previewMs }: Props) {
   const theme = useTheme();
-  const { settings } = useSettings();
   const selected = normalizeFormat(value);
 
   const toggle = (unit: DurationUnit) => {
@@ -43,7 +41,7 @@ export function FormatPicker({ value, onChange, previewMs }: Props) {
           Preview
         </ThemedText>
         <ThemedText type="default" style={styles.previewValue}>
-          {formatDuration(previewMs, selected, settings.showSeconds)}
+          {formatDuration(previewMs, selected)}
         </ThemedText>
       </View>
 

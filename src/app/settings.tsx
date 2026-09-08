@@ -19,7 +19,6 @@ type Destination = {
 const DESTINATIONS: Destination[] = [
   { href: '/settings/appearance', icon: 'color-palette-outline', label: 'Appearance' },
   { href: '/settings/categories', icon: 'pricetags-outline', label: 'Categories' },
-  { href: '/settings/timers', icon: 'hourglass-outline', label: 'Timer defaults' },
   { href: '/settings/data', icon: 'archive-outline', label: 'Data' },
   { href: '/settings/about', icon: 'information-circle-outline', label: 'About' },
 ];

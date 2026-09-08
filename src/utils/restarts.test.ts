@@ -1,62 +1,35 @@
 /// <reference types="jest" />
 
-import type { Restart, Timer } from '@/types/timer';
-import { MAX_RESTARTS, appendRestart, restartStats } from '@/utils/restarts';
+import type { Restart } from '@/types/timer';
+import { MAX_RESTARTS, appendRestart, longestRunMs } from '@/utils/restarts';
 
-const NOW = Date.parse('2024-06-01T00:00:00.000Z');
 const HOUR = 60 * 60 * 1000;
-
-function timer(restarts: Restart[], runningSince: string | null = '2024-05-31T22:00:00.000Z'): Timer {
-  return {
-    id: 't',
-    label: 'Timer',
-    color: '#BDE3FA',
-    startDateTime: '2024-05-31T22:00:00.000Z',
-    createdAt: '2024-01-01T00:00:00.000Z',
-    isRunning: runningSince !== null,
-    runningSince,
-    accumulatedMs: 0,
-    order: 0,
-    notificationsEnabled: false,
-    format: ['days', 'time'],
-    categoryId: null,
-    restarts,
-  };
-}
 
 function restart(lastedMs: number): Restart {
   return { at: '2024-05-31T22:00:00.000Z', lastedMs };
 }
 
-describe('restartStats', () => {
-  it('counts the restarts', () => {
-    expect(restartStats(timer([restart(HOUR), restart(HOUR)]), NOW).count).toBe(2);
+describe('longestRunMs', () => {
+  it('falls back to the current run when nothing has been logged', () => {
+    expect(longestRunMs([], 2 * HOUR)).toBe(2 * HOUR);
   });
 
-  it('reports the current run from the clock', () => {
-    // Running since two hours before NOW.
-    expect(restartStats(timer([]), NOW).currentMs).toBe(2 * HOUR);
-  });
-
-  it('falls back to the current run when there is no history', () => {
-    expect(restartStats(timer([]), NOW).longestMs).toBe(2 * HOUR);
-  });
-
-  it('picks the longest past run when it beats the current one', () => {
-    expect(restartStats(timer([restart(HOUR), restart(9 * HOUR)]), NOW).longestMs).toBe(9 * HOUR);
+  it('picks the longest logged run when it beats the current one', () => {
+    expect(longestRunMs([restart(HOUR), restart(9 * HOUR)], 2 * HOUR)).toBe(9 * HOUR);
   });
 
   it('lets the current run be the longest', () => {
-    expect(restartStats(timer([restart(HOUR)]), NOW).longestMs).toBe(2 * HOUR);
+    expect(longestRunMs([restart(HOUR)], 2 * HOUR)).toBe(2 * HOUR);
+  });
+
+  it('flips to the current run the moment it overtakes the record', () => {
+    const log = [restart(3 * HOUR)];
+    expect(longestRunMs(log, 3 * HOUR - 1)).toBe(3 * HOUR);
+    expect(longestRunMs(log, 3 * HOUR + 1)).toBe(3 * HOUR + 1);
   });
 
   it('ranks a countdown by how far away it was, not by its sign', () => {
-    const stats = restartStats(timer([restart(-9 * HOUR)]), NOW);
-    expect(stats.longestMs).toBe(-9 * HOUR);
-  });
-
-  it('uses the frozen value while a timer is stopped', () => {
-    expect(restartStats(timer([], null), NOW).currentMs).toBe(0);
+    expect(longestRunMs([restart(-9 * HOUR)], 2 * HOUR)).toBe(-9 * HOUR);
   });
 });
 

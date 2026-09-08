@@ -12,7 +12,7 @@ import {
 import { loadTimers, saveTimers } from '@/store/storage';
 import type { Restart, Timer, TimerDraft, TimerFormat } from '@/types/timer';
 import { signedElapsedMs } from '@/utils/elapsed';
-import { DEFAULT_FORMAT, normalizeFormat } from '@/utils/format-duration';
+import { DEFAULT_FORMAT } from '@/utils/format-duration';
 import { appendRestart } from '@/utils/restarts';
 import { currentTick } from '@/utils/ticker';
 
@@ -33,7 +33,6 @@ type Action =
   | { type: 'setNotifications'; id: string; enabled: boolean }
   | { type: 'setCategory'; id: string; categoryId: string | null }
   | { type: 'setFormat'; id: string; format: TimerFormat }
-  | { type: 'setFormatAll'; format: TimerFormat }
   | { type: 'import'; timers: Timer[]; mode: ImportMode }
   | { type: 'clearCategory'; categoryId: string }
   | { type: 'clearRestarts'; id: string }
@@ -75,7 +74,7 @@ function createTimer(draft: TimerDraft, order: number): Timer {
     accumulatedMs: 0,
     order,
     notificationsEnabled: false,
-    format: draft.format ? normalizeFormat(draft.format) : DEFAULT_FORMAT,
+    format: DEFAULT_FORMAT,
     categoryId: draft.categoryId,
     restarts: [],
   };
@@ -181,12 +180,6 @@ function reducer(state: State, action: Action): State {
     case 'setFormat':
       return mapTimer(state, action.id, (timer) => ({ ...timer, format: action.format }));
 
-    case 'setFormatAll':
-      return {
-        ...state,
-        timers: state.timers.map((timer) => ({ ...timer, format: action.format })),
-      };
-
     case 'import':
       // Merged rows arrive already re-identified by `reidentifyBackup`, which
       // has to mint the ids itself so it can remap `categoryId` at the same
@@ -226,7 +219,6 @@ type TimersContextValue = {
   setNotificationsEnabled: (id: string, enabled: boolean) => void;
   setCategory: (id: string, categoryId: string | null) => void;
   setFormat: (id: string, format: TimerFormat) => void;
-  setFormatAll: (format: TimerFormat) => void;
   importTimers: (timers: Timer[], mode: ImportMode) => void;
   clearCategory: (categoryId: string) => void;
   clearRestarts: (id: string) => void;
@@ -285,7 +277,6 @@ export function TimersProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'setNotifications', id, enabled }),
       setCategory: (id, categoryId) => dispatch({ type: 'setCategory', id, categoryId }),
       setFormat: (id, format) => dispatch({ type: 'setFormat', id, format }),
-      setFormatAll: (format) => dispatch({ type: 'setFormatAll', format }),
       importTimers: (timers, mode) => dispatch({ type: 'import', timers, mode }),
       clearCategory: (categoryId) => dispatch({ type: 'clearCategory', categoryId }),
       clearRestarts: (id) => dispatch({ type: 'clearRestarts', id }),

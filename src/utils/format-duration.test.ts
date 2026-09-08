@@ -4,7 +4,6 @@ import {
   DAYS_PER_MONTH,
   DAYS_PER_WEEK,
   DAYS_PER_YEAR,
-  describeFormat,
   formatDuration,
   normalizeFormat,
 } from '@/utils/format-duration';
@@ -82,22 +81,6 @@ describe('formatDuration', () => {
     });
   });
 
-  describe('seconds hidden', () => {
-    it('drops the seconds from the clock', () => {
-      expect(formatDuration(19 * DAY + 3 * HOUR + 54 * MINUTE + 34 * SECOND, ['days', 'time'], false)).toBe(
-        '19d 03:54'
-      );
-    });
-
-    it('still truncates rather than rounding the minute up', () => {
-      expect(formatDuration(59 * SECOND, ['days', 'time'], false)).toBe('0d 00:00');
-    });
-
-    it('leaves date units untouched, having no seconds to drop', () => {
-      expect(formatDuration(2 * YEAR + 10 * DAY, ['years', 'days'], false)).toBe('2y 10d');
-    });
-  });
-
   describe('countdowns', () => {
     it('ignores the sign of a negative duration', () => {
       expect(formatDuration(-(19 * DAY + 3 * HOUR), ['days', 'time'])).toBe('19d 03:00:00');
@@ -132,11 +115,5 @@ describe('normalizeFormat', () => {
     expect(normalizeFormat([])).toEqual(['days', 'time']);
     expect(normalizeFormat(undefined)).toEqual(['days', 'time']);
     expect(normalizeFormat('nonsense')).toEqual(['days', 'time']);
-  });
-});
-
-describe('describeFormat', () => {
-  it('summarises a selection with short names', () => {
-    expect(describeFormat(['years', 'days', 'time'])).toBe('Years · Days · Time');
   });
 });

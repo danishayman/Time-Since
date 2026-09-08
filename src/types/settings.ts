@@ -1,6 +1,3 @@
-import { DEFAULT_COLOR } from '@/constants/palette';
-import type { TimerFormat } from '@/types/timer';
-import { DEFAULT_FORMAT } from '@/utils/format-duration';
 
 /** Which palette the app paints with. `system` follows the device. */
 export type ThemePreference = 'system' | 'light' | 'dark';
@@ -12,13 +9,8 @@ export type DateOrder = 'dmy' | 'mdy' | 'ymd';
 
 export type Settings = {
   theme: ThemePreference;
-  /** Also drives the clock interval: hiding seconds drops the ticker to a minute. */
-  showSeconds: boolean;
   clockFormat: ClockFormat;
   dateOrder: DateOrder;
-  /** Applied to timers created from now on, not retroactively. */
-  defaultFormat: TimerFormat;
-  defaultColor: string;
   /** Id of the category the home list is filtered to, or `null` for all of them. */
   categoryFilter: string | null;
   haptics: boolean;
@@ -30,11 +22,8 @@ export type Settings = {
  */
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
-  showSeconds: true,
   clockFormat: '24h',
   dateOrder: 'dmy',
-  defaultFormat: DEFAULT_FORMAT,
-  defaultColor: DEFAULT_COLOR,
   categoryFilter: null,
   haptics: true,
 };

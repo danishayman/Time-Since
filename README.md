@@ -16,8 +16,8 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
   the badge counts in exactly those units — `2w 6d`, `23y 60d`, `48:00:00`.
 - Categories: file a timer under a named, coloured category — from the create form, or from the
   Category button on its detail screen — and narrow the list with the chips along the top.
-- A settings menu: theme override, categories, seconds on or off, clock and date format, defaults
-  for new timers, haptics, and JSON export/import.
+- A settings menu: theme override, categories, clock and date format, haptics, and JSON
+  export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
 
 ## Get started
@@ -60,7 +60,7 @@ src/
     index.tsx         Home — the timer list
     new.tsx           Create a timer
     settings.tsx      Settings menu
-    settings/         Appearance, categories, timer defaults, display format, data, about
+    settings/         Appearance, categories, data, about
     timer/[id].tsx    Timer detail
     timer/[id]/       Edit, display format, category, restart history,
                       notifications (stub)
@@ -79,8 +79,9 @@ Three details worth knowing before you change things:
 - **The clock lives in `src/utils/ticker.ts`.** It is a single app-wide one-second interval that
   only `DurationBadge` subscribes to, so a tick re-renders the badge text and nothing else. Adding
   a `useNow()` call to a row or a screen would re-render the whole list every second.
-  The period is settable — turning off "Show seconds" drops it to a minute — and `useNowSnapshot()`
-  reads the clock without subscribing, for callers that need a `now` but must not re-render on it.
+  The period is settable, and `TickerRate` in the root layout drops it to a minute whenever no
+  timer counts in `time`. `useNowSnapshot()` reads the clock without subscribing, for callers that
+  need a `now` but must not re-render on it.
 - **Elapsed time is derived from timestamps, never accumulated.** `signedElapsedMs` computes
   `accumulatedMs + (now - runningSince)`, which is what keeps the display correct after the app has
   been backgrounded or killed.

@@ -58,16 +58,6 @@ export default function AppearanceScreen() {
             expanded={openPicker === 'theme'}
             onToggle={() => toggle('theme')}
           />
-          <SettingsSwitchRow
-            icon="stopwatch-outline"
-            label="Show seconds"
-            description="Off also slows the clock to once a minute"
-            value={settings.showSeconds}
-            onValueChange={(value) => {
-              tapFeedback(haptics);
-              setSetting('showSeconds', value);
-            }}
-          />
           <SettingsPickerRow
             icon="time-outline"
             label="Clock"
