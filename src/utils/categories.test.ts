@@ -2,7 +2,7 @@
 
 import type { Category } from '@/types/category';
 import type { Timer } from '@/types/timer';
-import { categoryOf, countByCategory, groupTimers, resolveFilter } from '@/utils/categories';
+import { categoryOf, countByCategory, resolveFilter } from '@/utils/categories';
 
 function category(id: string, name: string, order: number): Category {
   return { id, name, color: '#BDE3FA', order };
@@ -70,38 +70,5 @@ describe('countByCategory', () => {
       health: 1,
       empty: 0,
     });
-  });
-});
-
-describe('groupTimers', () => {
-  it('returns one section per non-empty category, in category order', () => {
-    const sections = groupTimers([b, a], categories);
-    expect(sections.map((section) => section.category?.name)).toEqual(['Work', 'Health']);
-  });
-
-  it('puts the uncategorised bucket last', () => {
-    const sections = groupTimers([c, a], categories);
-    expect(sections.map((section) => section.category?.name ?? 'none')).toEqual(['Work', 'none']);
-  });
-
-  it('leaves out a category nothing is filed under', () => {
-    const sections = groupTimers([a], categories);
-    expect(sections).toHaveLength(1);
-  });
-
-  it('leaves out the uncategorised bucket when everything has a category', () => {
-    const sections = groupTimers([a, b], categories);
-    expect(sections.every((section) => section.category !== null)).toBe(true);
-  });
-
-  it('files a timer whose category was deleted under uncategorised', () => {
-    const sections = groupTimers([orphan], categories);
-    expect(sections).toEqual([{ category: null, timers: [orphan] }]);
-  });
-
-  it('preserves the order timers arrived in within a section', () => {
-    const second = timer('a2', 'work');
-    const sections = groupTimers([second, a], categories);
-    expect(sections[0].timers.map((t) => t.id)).toEqual(['a2', 'a']);
   });
 });

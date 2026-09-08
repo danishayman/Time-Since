@@ -28,6 +28,7 @@ type Action =
   | { type: 'resume'; id: string }
   | { type: 'reorder'; from: number; to: number }
   | { type: 'setNotifications'; id: string; enabled: boolean }
+  | { type: 'setCategory'; id: string; categoryId: string | null }
   | { type: 'setFormat'; id: string; format: TimerFormat }
   | { type: 'setFormatAll'; format: TimerFormat }
   | { type: 'import'; timers: Timer[]; mode: ImportMode }
@@ -159,6 +160,9 @@ function reducer(state: State, action: Action): State {
         notificationsEnabled: action.enabled,
       }));
 
+    case 'setCategory':
+      return mapTimer(state, action.id, (timer) => ({ ...timer, categoryId: action.categoryId }));
+
     case 'setFormat':
       return mapTimer(state, action.id, (timer) => ({ ...timer, format: action.format }));
 
@@ -202,6 +206,7 @@ type TimersContextValue = {
   resumeTimer: (id: string) => void;
   reorderTimers: (from: number, to: number) => void;
   setNotificationsEnabled: (id: string, enabled: boolean) => void;
+  setCategory: (id: string, categoryId: string | null) => void;
   setFormat: (id: string, format: TimerFormat) => void;
   setFormatAll: (format: TimerFormat) => void;
   importTimers: (timers: Timer[], mode: ImportMode) => void;
@@ -259,6 +264,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       reorderTimers: (from, to) => dispatch({ type: 'reorder', from, to }),
       setNotificationsEnabled: (id, enabled) =>
         dispatch({ type: 'setNotifications', id, enabled }),
+      setCategory: (id, categoryId) => dispatch({ type: 'setCategory', id, categoryId }),
       setFormat: (id, format) => dispatch({ type: 'setFormat', id, format }),
       setFormatAll: (format) => dispatch({ type: 'setFormatAll', format }),
       importTimers: (timers, mode) => dispatch({ type: 'import', timers, mode }),

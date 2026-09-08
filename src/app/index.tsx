@@ -1,8 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import ReorderableList, {
-  NestedReorderableList,
-  ScrollViewContainer,
   useIsActive,
   useReorderableDrag,
   type ReorderableListReorderEvent,
@@ -16,13 +14,11 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimerRow } from '@/components/timer-row';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useCategories } from '@/store/categories-context';
 import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
-import type { Category } from '@/types/category';
 import type { Timer } from '@/types/timer';
-import { categoryOf, groupTimers, resolveFilter } from '@/utils/categories';
+import { categoryOf, resolveFilter } from '@/utils/categories';
 import { globalReorderIndices, sortTimers } from '@/utils/sort-timers';
 import { useNowSnapshot } from '@/utils/ticker';
 
@@ -52,19 +48,6 @@ function TimerListItem({
       onDragStart={draggable ? drag : undefined}
       onPress={() => router.push({ pathname: '/timer/[id]', params: { id: timer.id } })}
     />
-  );
-}
-
-function SectionHeading({ category }: { category: Category | null }) {
-  const theme = useTheme();
-
-  return (
-    <View style={[styles.heading, { borderBottomColor: theme.border }]}>
-      <View style={[styles.dot, { backgroundColor: category?.color ?? theme.textSecondary }]} />
-      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.headingLabel}>
-        {(category?.name ?? 'Uncategorised').toUpperCase()}
-      </ThemedText>
-    </View>
   );
 }
 
@@ -103,17 +86,16 @@ export default function HomeScreen() {
   const manual = settings.sortMode === 'manual';
   const visible = sortTimers(filtered, settings.sortMode, now);
 
-  // Sections only earn their keep on the unfiltered list — inside a filter every
-  // row would sit under the same heading.
-  const grouped = settings.groupByCategory && !activeFilter && categories.length > 0;
-  const sections = grouped ? groupTimers(visible, categories) : [];
-
-  /** A drag inside a section or a filtered list still moves the stored array. */
-  const reorderWithin = (run: Timer[], { from, to }: ReorderableListReorderEvent) => {
+  /**
+   * A drag reports positions in the visible list, which is only a subsequence
+   * of the stored one while a filter is on, so the indices are translated back
+   * before the store acts on them.
+   */
+  const handleReorder = ({ from, to }: ReorderableListReorderEvent) => {
     if (!manual) {
       return;
     }
-    const indices = globalReorderIndices(timers, run, from, to);
+    const indices = globalReorderIndices(timers, visible, from, to);
     if (indices) {
       reorderTimers(indices.from, indices.to);
     }
@@ -165,43 +147,21 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       {header}
 
-      {grouped ? (
-        <ScrollViewContainer contentContainerStyle={styles.listContent}>
-          {sections.map((section) => (
-            <View key={section.category?.id ?? 'uncategorised'}>
-              <SectionHeading category={section.category} />
-              <NestedReorderableList
-                data={section.timers}
-                // The outer container does all the scrolling. `scrollable`
-                // governs autoscroll during a drag; `scrollEnabled` is the
-                // underlying list's own prop, and leaving it on is what makes
-                // React Native warn about nesting a list inside a ScrollView.
-                scrollable={false}
-                scrollEnabled={false}
-                keyExtractor={(timer) => timer.id}
-                renderItem={({ item }) => (
-                  <TimerListItem timer={item} draggable={manual} showCategory={false} />
-                )}
-                onReorder={(event) => reorderWithin(section.timers, event)}
-              />
-            </View>
-          ))}
-        </ScrollViewContainer>
-      ) : (
-        <ReorderableList
-          data={visible}
-          keyExtractor={(timer) => timer.id}
-          renderItem={({ item }) => (
-            <TimerListItem
-              timer={item}
-              draggable={manual}
-              showCategory={!activeFilter && categories.length > 0}
-            />
-          )}
-          onReorder={(event) => reorderWithin(visible, event)}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+      <ReorderableList
+        data={visible}
+        keyExtractor={(timer) => timer.id}
+        renderItem={({ item }) => (
+          <TimerListItem
+            timer={item}
+            draggable={manual}
+            // Inside a filter every row would name the same category, so the
+            // label only earns its place on the unfiltered list.
+            showCategory={!activeFilter && categories.length > 0}
+          />
+        )}
+        onReorder={handleReorder}
+        contentContainerStyle={styles.listContent}
+      />
 
       {fab}
     </ThemedView>
@@ -214,23 +174,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 96,
-  },
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.two,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headingLabel: {
-    letterSpacing: 0.8,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   emptyFill: {
     flex: 1,

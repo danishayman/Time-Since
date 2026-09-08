@@ -60,6 +60,7 @@ function RootNavigator() {
         <Stack.Screen name="settings/about" options={{ title: 'About' }} />
         <Stack.Screen name="timer/[id]" options={{ title: 'Timer' }} />
         <Stack.Screen name="timer/[id]/edit" options={{ title: 'Edit timer' }} />
+        <Stack.Screen name="timer/[id]/category" options={{ title: 'Category' }} />
         <Stack.Screen name="timer/[id]/format" options={{ title: 'Format' }} />
         <Stack.Screen name="timer/[id]/restarts" options={{ title: 'Restarts' }} />
         <Stack.Screen name="timer/[id]/notifications" options={{ title: 'Notifications' }} />

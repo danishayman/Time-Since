@@ -13,8 +13,8 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
 - Stop and resume without losing accrued time, or restart from zero.
 - Per-timer display format: tick any combination of years, months, weeks, days and the clock, and
   the badge counts in exactly those units — `2w 6d`, `23y 60d`, `48:00:00`.
-- Categories: file a timer under a named, coloured category, filter the list with the chips at the
-  top, and let the unfiltered list break itself into a section per category.
+- Categories: file a timer under a named, coloured category — from the create form, or from the
+  Category button on its detail screen — and narrow the list with the chips along the top.
 - A settings menu: theme override, categories, seconds on or off, clock and date format, defaults
   for new timers, list ordering, haptics, and JSON export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
@@ -61,18 +61,19 @@ src/
     settings.tsx      Settings menu
     settings/         Appearance, categories, timer defaults, display format, data, about
     timer/[id].tsx    Timer detail
-    timer/[id]/       Edit, display format, restart history (stub), notifications (stub)
+    timer/[id]/       Edit, display format, category, restart history (stub),
+                      notifications (stub)
   components/       Duration badge, timer row, color/format/category pickers, shared form
     settings/         Flat list, row, switch row, checkbox row, inline picker row
   store/            Timers, categories and settings contexts + reducers, AsyncStorage persistence
   hooks/            Resolved color scheme, timestamp formatter
-  utils/            Duration formatter, sorting and grouping (unit-tested), elapsed
-                    math, shared clock, backup read/write, haptics
+  utils/            Duration formatter and sorting (unit-tested), category
+                    resolution, elapsed math, shared clock, backup read/write, haptics
   types/            Timer, category and settings models
   constants/        Theme tokens and the color palette
 ```
 
-Five details worth knowing before you change things:
+Four details worth knowing before you change things:
 
 - **The clock lives in `src/utils/ticker.ts`.** It is a single app-wide one-second interval that
   only `DurationBadge` subscribes to, so a tick re-renders the badge text and nothing else. Adding
@@ -94,10 +95,9 @@ Five details worth knowing before you change things:
   exists only to stop dead ids accumulating in storage — nothing depends on it running.
 - **Only the manual sort order is stored.** Every other list order in settings is derived at render
   time by `sortTimers` and never written back, so switching away and back restores the arrangement
-  the user dragged. Dragging is disabled while a derived order is active. In the grouped list each
-  section is its own `NestedReorderableList`, and `globalReorderIndices` maps a drag inside one back
-  onto positions in the stored array — so dragging reorders within a category but never moves a
-  timer between them.
+  the user dragged. Dragging is disabled while a derived order is active, and while a category chip
+  is filtering the list `globalReorderIndices` maps a drag back onto positions in the stored array,
+  so reordering a filtered view leaves everything outside the filter where it was.
 
 ## Not yet implemented
 

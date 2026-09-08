@@ -29,8 +29,6 @@ export type Settings = {
   sortMode: SortMode;
   /** Id of the category the home list is filtered to, or `null` for all of them. */
   categoryFilter: string | null;
-  /** Whether the unfiltered home list is broken into per-category sections. */
-  groupByCategory: boolean;
   haptics: boolean;
 };
 
@@ -47,7 +45,6 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultColor: DEFAULT_COLOR,
   sortMode: 'manual',
   categoryFilter: null,
-  groupByCategory: true,
   haptics: true,
 };
 

@@ -6,7 +6,6 @@ import { ColorPicker } from '@/components/color-picker';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsPickerRow } from '@/components/settings/settings-picker-row';
 import { SettingsRow } from '@/components/settings/settings-row';
-import { SettingsSwitchRow } from '@/components/settings/settings-switch-row';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useSettings } from '@/store/settings-context';
@@ -104,17 +103,6 @@ export default function TimerDefaultsScreen() {
             onToggle={() => {
               tapFeedback(haptics);
               setSortOpen((open) => !open);
-            }}
-          />
-
-          <SettingsSwitchRow
-            icon="pricetags-outline"
-            label="Group by category"
-            description="Breaks the unfiltered list into a section per category"
-            value={settings.groupByCategory}
-            onValueChange={(value) => {
-              tapFeedback(haptics);
-              setSetting('groupByCategory', value);
             }}
           />
 
