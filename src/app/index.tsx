@@ -99,6 +99,7 @@ export default function HomeScreen() {
         categories={categories}
         value={activeFilter?.id ?? null}
         onChange={(categoryId) => setSetting('categoryFilter', categoryId)}
+        onAdd={() => router.push('/settings/category')}
       />
     </>
   );

@@ -12,6 +12,7 @@ import {
 import { loadTimers, saveTimers } from '@/store/storage';
 import type { Timer, TimerDraft, TimerFormat } from '@/types/timer';
 import { DEFAULT_FORMAT, normalizeFormat } from '@/utils/format-duration';
+import { currentTick } from '@/utils/ticker';
 
 type State = {
   timers: Timer[];
@@ -112,7 +113,9 @@ function reducer(state: State, action: Action): State {
 
     case 'restart':
       return mapTimer(state, action.id, (timer) => {
-        const nowIso = new Date().toISOString();
+        // The ticker's value, not the wall clock, so the badge reads a clean
+        // zero rather than a fraction of a second short of it.
+        const nowIso = new Date(currentTick()).toISOString();
         return {
           ...timer,
           startDateTime: nowIso,
@@ -127,8 +130,10 @@ function reducer(state: State, action: Action): State {
         if (!timer.isRunning) {
           return timer;
         }
-        // Freeze whatever has accrued so far; Resume picks up from here.
-        const accrued = timer.runningSince ? Date.now() - Date.parse(timer.runningSince) : 0;
+        // Freeze exactly what the badge is showing. Reading the wall clock
+        // here instead would bank up to a tick of time the badge had not shown
+        // yet, and the reading would jump forward as it froze.
+        const accrued = timer.runningSince ? currentTick() - Date.parse(timer.runningSince) : 0;
         return {
           ...timer,
           isRunning: false,
@@ -141,7 +146,9 @@ function reducer(state: State, action: Action): State {
       return mapTimer(state, action.id, (timer) =>
         timer.isRunning
           ? timer
-          : { ...timer, isRunning: true, runningSince: new Date().toISOString() }
+          : // Same basis as Stop, or resuming would drop the reading back by
+            // the part of a tick that had already elapsed.
+            { ...timer, isRunning: true, runningSince: new Date(currentTick()).toISOString() }
       );
 
     case 'reorder': {

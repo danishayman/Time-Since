@@ -104,6 +104,19 @@ function getSnapshot(): number {
   return snapshot;
 }
 
+/**
+ * The clock's value as the badges currently have it, for code that must agree
+ * with what is on screen rather than with the wall clock.
+ *
+ * `Date.now()` is always at least as late as this and can be a whole tick
+ * ahead, because the interval is not aligned to second boundaries. Freezing a
+ * timer against the wall clock therefore snaps the reading forward the moment
+ * it stops, which is why stopping, resuming and restarting all read from here.
+ */
+export function currentTick(): number {
+  return snapshot;
+}
+
 /** Current time in milliseconds, updated once per tick period. */
 export function useNow(): number {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
