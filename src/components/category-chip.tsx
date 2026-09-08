@@ -40,18 +40,32 @@ export function CategoryChip({
         styles.chip,
         selected
           ? { backgroundColor: fill, borderColor: fill }
-          : { borderColor: theme.border, backgroundColor: theme.background },
+          : {
+              // A wash of the category's own colour rather than a bare outline.
+              // `TINT` is an eight-digit hex alpha, which the palette's plain
+              // `#RRGGBB` values take directly.
+              backgroundColor: color ? `${color}${TINT}` : theme.background,
+              borderColor: color ?? theme.border,
+            },
         pressed && styles.pressed,
       ]}>
       <ThemedText
         type="smallBold"
         numberOfLines={1}
-        style={selected ? { color: contrastingTextColor(fill) } : { color: theme.textSecondary }}>
+        style={
+          selected
+            ? { color: contrastingTextColor(fill) }
+            : // Its own colour while unselected; "All" has none and stays grey.
+              { color: color ?? theme.textSecondary }
+        }>
         {label}
       </ThemedText>
     </Pressable>
   );
 }
+
+/** ~18% — enough to read as a fill without swamping the label sat on it. */
+const TINT = '2E';
 
 const styles = StyleSheet.create({
   chip: {

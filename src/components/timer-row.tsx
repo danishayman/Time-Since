@@ -15,8 +15,9 @@ type Props = {
   onDragStart: () => void;
   isDragging?: boolean;
   /**
-   * Shown as a coloured dot and name under the label. Left off in the grouped
-   * home list, where the section heading already says it.
+   * Named above the label and echoed as a stripe down the left edge. A timer
+   * with no category simply gets neither — an "uncategorised" caption would be
+   * noise on every row that has not been filed anywhere.
    */
   category?: Category;
 };
@@ -32,6 +33,8 @@ export function TimerRow({ timer, onPress, onDragStart, isDragging = false, cate
         { backgroundColor: theme.background, borderBottomColor: theme.border },
         (pressed || isDragging) && { backgroundColor: theme.backgroundElement },
       ]}>
+      {category && <View style={[styles.stripe, { backgroundColor: category.color }]} />}
+
       <Pressable
         onPressIn={onDragStart}
         hitSlop={Spacing.two}
@@ -44,17 +47,14 @@ export function TimerRow({ timer, onPress, onDragStart, isDragging = false, cate
       <DurationBadge timer={timer} />
 
       <View style={styles.labels}>
+        {category && (
+          <ThemedText style={[styles.category, { color: category.color }]} numberOfLines={1}>
+            {category.name.toUpperCase()}
+          </ThemedText>
+        )}
         <ThemedText type="default" style={styles.label} numberOfLines={2}>
           {timer.label}
         </ThemedText>
-        {category && (
-          <View style={styles.category}>
-            <View style={[styles.dot, { backgroundColor: category.color }]} />
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {category.name}
-            </ThemedText>
-          </View>
-        )}
       </View>
     </Pressable>
   );
@@ -69,24 +69,26 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  stripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
   handle: {
     paddingRight: Spacing.one,
   },
   labels: {
     flex: 1,
-    gap: Spacing.half,
   },
   label: {
     fontWeight: '600',
   },
   category: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one + 2,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
 });
