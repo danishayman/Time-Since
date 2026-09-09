@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import ReorderableList, {
   useIsActive,
   useReorderableDrag,
@@ -15,11 +14,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimerRow } from '@/components/timer-row';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useCategories } from '@/store/categories-context';
 import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
-import type { Category } from '@/types/category';
 import type { Timer } from '@/types/timer';
 import { categoryOf, resolveFilter } from '@/utils/categories';
 import { globalReorderIndices } from '@/utils/reorder';
@@ -42,32 +39,6 @@ function TimerListItem({ timer, showCategory }: { timer: Timer; showCategory: bo
       onDragStart={drag}
       onPress={() => router.push({ pathname: '/timer/[id]', params: { id: timer.id } })}
     />
-  );
-}
-
-/**
- * Closes off a filtered list with a way to add to the category being viewed.
- * Only shown under a filter: on "All" there is no category to file into, and
- * the floating button already covers that case.
- */
-function AddTimerRow({ category, onPress }: { category: Category; onPress: () => void }) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Add timer to ${category.name}`}
-      style={({ pressed }) => [
-        styles.addRow,
-        { borderBottomColor: theme.border },
-        pressed && { backgroundColor: theme.backgroundElement },
-      ]}>
-      <Ionicons name="add" size={22} color={category.color} />
-      <ThemedText type="default" style={[styles.addLabel, { color: category.color }]}>
-        Add timer
-      </ThemedText>
-    </Pressable>
   );
 }
 
@@ -142,12 +113,6 @@ export default function HomeScreen() {
     />
   );
 
-  // `new.tsx` seeds the draft from the active filter, so a timer created from
-  // here already belongs to the category being viewed.
-  const addTimer = activeFilter ? (
-    <AddTimerRow category={activeFilter} onPress={() => router.push('/new')} />
-  ) : null;
-
   if (visible.length === 0) {
     return (
       <ThemedView style={styles.container}>
@@ -155,7 +120,6 @@ export default function HomeScreen() {
         <View style={styles.emptyFill}>
           <EmptyState filtered={Boolean(activeFilter)} />
         </View>
-        {addTimer}
         {fab}
       </ThemedView>
     );
@@ -177,7 +141,6 @@ export default function HomeScreen() {
           />
         )}
         onReorder={handleReorder}
-        ListFooterComponent={addTimer}
         contentContainerStyle={styles.listContent}
       />
 
@@ -192,17 +155,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 96,
-  },
-  addRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 4,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  addLabel: {
-    fontWeight: '600',
   },
   emptyFill: {
     flex: 1,
