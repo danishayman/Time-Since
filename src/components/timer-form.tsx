@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
+import { useSettings } from '@/store/settings-context';
 
 export type TimerFormValues = {
   label: string;
@@ -33,6 +34,7 @@ type AndroidStep = 'date' | 'time' | null;
 
 export function TimerForm({ values, onChange }: Props) {
   const theme = useTheme();
+  const { settings } = useSettings();
   const formatTimestamp = useTimestampFormatter();
   const [androidStep, setAndroidStep] = useState<AndroidStep>(null);
   const [showIosPicker, setShowIosPicker] = useState(false);
@@ -96,13 +98,17 @@ export function TimerForm({ values, onChange }: Props) {
       </ThemedText>
       <ColorPicker value={values.color} onChange={(color) => set({ color })} />
 
-      <ThemedText type="default" style={styles.sectionTitle}>
-        Category
-      </ThemedText>
-      <CategoryPicker
-        value={values.categoryId}
-        onChange={(categoryId) => set({ categoryId })}
-      />
+      {settings.categoriesEnabled && (
+        <>
+          <ThemedText type="default" style={styles.sectionTitle}>
+            Category
+          </ThemedText>
+          <CategoryPicker
+            value={values.categoryId}
+            onChange={(categoryId) => set({ categoryId })}
+          />
+        </>
+      )}
 
       <View style={styles.dateSection}>
         <Pressable

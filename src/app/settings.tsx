@@ -1,5 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Platform, ScrollView, StyleSheet } from 'react-native';
 
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow, type IoniconName } from '@/components/settings/settings-row';
@@ -19,6 +19,11 @@ type Destination = {
 const DESTINATIONS: Destination[] = [
   { href: '/settings/appearance', icon: 'color-palette-outline', label: 'Appearance' },
   { href: '/settings/categories', icon: 'pricetags-outline', label: 'Categories' },
+  // Android only: iOS has no equivalent target, so the row would lead to a
+  // screen that can only apologise.
+  ...(Platform.OS === 'android'
+    ? ([{ href: '/settings/widgets', icon: 'grid-outline', label: 'Widgets' }] as Destination[])
+    : []),
   { href: '/settings/data', icon: 'archive-outline', label: 'Data' },
   { href: '/settings/about', icon: 'information-circle-outline', label: 'About' },
 ];
@@ -38,7 +43,7 @@ export default function SettingsScreen() {
               icon={icon}
               label={label}
               value={
-                label === 'Categories' && categories.length > 0
+                label === 'Categories' && settings.categoriesEnabled && categories.length > 0
                   ? `${categories.length}`
                   : undefined
               }

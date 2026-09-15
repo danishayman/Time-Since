@@ -15,8 +15,14 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
 - Per-timer display format: tick any combination of years, months, weeks, days and the clock, and
   the badge counts in exactly those units — `2w 6d`, `23y 60d`, `48:00:00`.
 - Categories: file a timer under a named, coloured category — from the create form, or from the
-  Category button on its detail screen — and narrow the list with the chips along the top.
-- A settings menu: theme override, categories, clock and date format, haptics, and JSON
+  Category button on its detail screen — and narrow the list with the chips along the top. The
+  whole feature switches off from settings without losing what was filed where.
+- Android home screen widgets, in four styles — filled with the timer's own colour, two
+  transparent ones for dark or light wallpapers, and one carrying a restart button that resets
+  the timer without opening the app. All four are free. Each placed widget is pointed at a
+  timer of its own, tapping it opens that timer, and the duration is shown in the same units
+  the timer uses.
+- A settings menu: theme override, categories, widgets, clock and date format, haptics, and JSON
   export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
 
@@ -34,9 +40,28 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
    npx expo start
    ```
 
-Open it in [Expo Go](https://expo.dev/go), an [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/),
-or an [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/). Every dependency is
-supported in Expo Go, so no development build is required.
+Open it in an [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/) or an
+[iOS simulator](https://docs.expo.dev/workflow/ios-simulator/).
+
+The home screen widgets need native code, so **Android needs a development build** rather than
+Expo Go:
+
+```bash
+npx expo run:android
+```
+
+Everything else still runs in [Expo Go](https://expo.dev/go); only the widgets are missing there.
+Android Gradle does not yet build under JDK 24 or newer — use the JDK 21 that ships with Android
+Studio if `expo run:android` fails while configuring CMake.
+
+### Widgets
+
+The four providers are declared in the `react-native-android-widget` plugin block in `app.json`,
+and the `name` of each must match a key in [`src/widgets/widget-variants.ts`](src/widgets/widget-variants.ts).
+Everything a widget draws is computed from the same `AsyncStorage` the app writes, by the same
+pure helpers the app's own badge uses, so the two can never disagree — see
+[`src/widgets/`](src/widgets/) for how that is wired, and `src/widgets/platform.ts` for why the
+Android-only modules are reached through a runtime check rather than imported.
 
 ## Checks
 

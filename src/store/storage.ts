@@ -8,6 +8,7 @@ import { normalizeFormat } from '@/utils/format-duration';
 const TIMERS_KEY = 'timesince.timers.v1';
 const SETTINGS_KEY = 'timesince.settings.v1';
 const CATEGORIES_KEY = 'timesince.categories.v1';
+const WIDGETS_KEY = 'timesince.widgets.v1';
 
 /**
  * Reads persisted timers. A corrupt or unreadable payload resolves to an empty
@@ -97,4 +98,58 @@ export async function saveCategories(categories: Category[]): Promise<void> {
   } catch (error) {
     console.warn('[time-since] failed to save categories', error);
   }
+}
+
+/**
+ * Which timer a home screen widget shows, keyed by the numeric id Android hands
+ * out per placed instance. Only the timer is recorded — the style is implied by
+ * which of the four widget providers was dropped, so switching style means
+ * adding a different widget rather than editing this.
+ *
+ * Written from two processes: the configuration activity when a widget is
+ * placed, and the headless widget task when one is removed. Both go through
+ * these functions so the read-modify-write stays in one place.
+ */
+export type WidgetBindings = Record<string, { timerId: string }>;
+
+export async function loadWidgetBindings(): Promise<WidgetBindings> {
+  try {
+    const raw = await AsyncStorage.getItem(WIDGETS_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as WidgetBindings;
+  } catch (error) {
+    console.warn('[time-since] failed to load widget bindings', error);
+    return {};
+  }
+}
+
+export async function saveWidgetBindings(bindings: WidgetBindings): Promise<void> {
+  try {
+    await AsyncStorage.setItem(WIDGETS_KEY, JSON.stringify(bindings));
+  } catch (error) {
+    console.warn('[time-since] failed to save widget bindings', error);
+  }
+}
+
+/** Points one widget instance at a timer, leaving every other instance alone. */
+export async function bindWidget(widgetId: number, timerId: string): Promise<void> {
+  const bindings = await loadWidgetBindings();
+  await saveWidgetBindings({ ...bindings, [String(widgetId)]: { timerId } });
+}
+
+/** Forgets one widget instance, so removed widgets do not accumulate forever. */
+export async function unbindWidget(widgetId: number): Promise<void> {
+  const bindings = await loadWidgetBindings();
+  if (!(String(widgetId) in bindings)) {
+    return;
+  }
+  const next = { ...bindings };
+  delete next[String(widgetId)];
+  await saveWidgetBindings(next);
 }

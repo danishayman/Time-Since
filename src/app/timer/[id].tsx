@@ -160,13 +160,19 @@ function TimerDetail({ timer }: { timer: Timer }) {
             router.push({ pathname: '/timer/[id]/notifications', params: { id: timer.id } })
           }
         />
-        <ActionButton
-          icon="pricetags-outline"
-          label="Category"
-          onPress={() =>
-            router.push({ pathname: '/timer/[id]/category', params: { id: timer.id } })
-          }
-        />
+        {settings.categoriesEnabled ? (
+          <ActionButton
+            icon="pricetags-outline"
+            label="Category"
+            onPress={() =>
+              router.push({ pathname: '/timer/[id]/category', params: { id: timer.id } })
+            }
+          />
+        ) : (
+          // Holds the third column so the two remaining buttons keep their
+          // places rather than spreading across the row.
+          <View style={styles.spacer} />
+        )}
       </Section>
 
       <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
@@ -219,6 +225,9 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+  },
+  spacer: {
+    flex: 1,
   },
   footer: {
     marginTop: 'auto',

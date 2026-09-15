@@ -8,13 +8,14 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 
 import { loadTimers, saveTimers } from '@/store/storage';
-import type { Restart, Timer, TimerDraft, TimerFormat } from '@/types/timer';
-import { signedElapsedMs } from '@/utils/elapsed';
+import type { Timer, TimerDraft, TimerFormat } from '@/types/timer';
 import { DEFAULT_FORMAT } from '@/utils/format-duration';
-import { appendRestart } from '@/utils/restarts';
+import { applyRestart } from '@/utils/restarts';
 import { currentTick } from '@/utils/ticker';
+import { refreshTimerWidgets } from '@/widgets/refresh';
 
 type State = {
   timers: Timer[];
@@ -23,6 +24,7 @@ type State = {
 
 type Action =
   | { type: 'hydrate'; timers: Timer[] }
+  | { type: 'reload'; timers: Timer[] }
   | { type: 'add'; draft: TimerDraft }
   | { type: 'update'; id: string; draft: TimerDraft }
   | { type: 'remove'; id: string }
@@ -85,6 +87,13 @@ function reducer(state: State, action: Action): State {
     case 'hydrate':
       return { timers: reindex(sortByOrder(action.timers)), hydrated: true };
 
+    case 'reload':
+      // Storage is the authority again. A restart tapped on a home screen
+      // widget writes straight to `timesince.timers.v1` from a headless task,
+      // so whatever this reducer is still holding from before the app was
+      // backgrounded is stale and would overwrite it on the next save.
+      return { timers: reindex(sortByOrder(action.timers)), hydrated: true };
+
     case 'add':
       return { ...state, timers: [...state.timers, createTimer(action.draft, state.timers.length)] };
 
@@ -115,22 +124,11 @@ function reducer(state: State, action: Action): State {
       return { ...state, timers: reindex(state.timers.filter((timer) => timer.id !== action.id)) };
 
     case 'restart':
-      return mapTimer(state, action.id, (timer) => {
-        // The ticker's value, not the wall clock, so the badge reads a clean
-        // zero rather than a fraction of a second short of it, and the logged
-        // run matches the reading the user was looking at when they tapped.
-        const now = currentTick();
-        const nowIso = new Date(now).toISOString();
-        const entry: Restart = { at: nowIso, lastedMs: signedElapsedMs(timer, now) };
-        return {
-          ...timer,
-          startDateTime: nowIso,
-          runningSince: nowIso,
-          accumulatedMs: 0,
-          isRunning: true,
-          restarts: appendRestart(timer.restarts, entry),
-        };
-      });
+      // The ticker's value, not the wall clock, so the badge reads a clean zero
+      // rather than a fraction of a second short of it, and the logged run
+      // matches the reading the user was looking at when they tapped. The home
+      // screen widget calls the same helper with the wall clock.
+      return mapTimer(state, action.id, (timer) => applyRestart(timer, currentTick()));
 
     case 'stop':
       return mapTimer(state, action.id, (timer) => {
@@ -254,13 +252,31 @@ export function TimersProvider({ children }: { children: ReactNode }) {
     if (saveTimeout.current) {
       clearTimeout(saveTimeout.current);
     }
-    saveTimeout.current = setTimeout(() => saveTimers(state.timers), SAVE_DEBOUNCE_MS);
+    saveTimeout.current = setTimeout(() => {
+      // Widgets read the same key, so they are redrawn from the value that was
+      // just written rather than from this component's state — one source of
+      // truth, and no chance of painting a timer the store has not saved yet.
+      saveTimers(state.timers).then(refreshTimerWidgets);
+    }, SAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimeout.current) {
         clearTimeout(saveTimeout.current);
       }
     };
   }, [state.timers, state.hydrated]);
+
+  useEffect(() => {
+    // Only on the way back from the background: the app is the only writer
+    // while it is in front, and re-reading on every foreground of an already
+    // active app would just be churn.
+    const subscription = AppState.addEventListener('change', (status) => {
+      if (status !== 'active') {
+        return;
+      }
+      loadTimers().then((timers) => dispatch({ type: 'reload', timers }));
+    });
+    return () => subscription.remove();
+  }, []);
 
   const value = useMemo<TimersContextValue>(
     () => ({
@@ -280,7 +296,7 @@ export function TimersProvider({ children }: { children: ReactNode }) {
       importTimers: (timers, mode) => dispatch({ type: 'import', timers, mode }),
       clearCategory: (categoryId) => dispatch({ type: 'clearCategory', categoryId }),
       clearRestarts: (id) => dispatch({ type: 'clearRestarts', id }),
-      clearTimers: () => dispatch({ type: 'clear' }),
+       clearTimers: () => dispatch({ type: 'clear' }),
     }),
     [state.timers, state.hydrated]
   );

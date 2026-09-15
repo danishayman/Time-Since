@@ -64,8 +64,12 @@ export default function HomeScreen() {
   const { categories } = useCategories();
   const { settings, setSetting } = useSettings();
 
+  // With categories switched off nothing filters and nothing is labelled, but
+  // the stored ids are left alone so switching back on restores the lot.
+  const showCategories = settings.categoriesEnabled;
+
   // A filter naming a category that has since been deleted falls back to "All".
-  const activeFilter = resolveFilter(settings.categoryFilter, categories);
+  const activeFilter = showCategories ? resolveFilter(settings.categoryFilter, categories) : undefined;
   const visible = activeFilter
     ? timers.filter((timer) => categoryOf(timer, categories)?.id === activeFilter.id)
     : timers;
@@ -96,7 +100,7 @@ export default function HomeScreen() {
         }}
       />
       <CategoryFilter
-        categories={categories}
+        categories={showCategories ? categories : []}
         value={activeFilter?.id ?? null}
         onChange={(categoryId) => setSetting('categoryFilter', categoryId)}
         onAdd={() => router.push('/settings/category')}
@@ -137,7 +141,7 @@ export default function HomeScreen() {
             timer={item}
             // Inside a filter every row would name the same category, so the
             // label only earns its place on the unfiltered list.
-            showCategory={!activeFilter && categories.length > 0}
+            showCategory={showCategories && !activeFilter && categories.length > 0}
           />
         )}
         onReorder={handleReorder}

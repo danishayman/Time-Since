@@ -11,6 +11,12 @@ export type Settings = {
   theme: ThemePreference;
   clockFormat: ClockFormat;
   dateOrder: DateOrder;
+  /**
+   * Whether categories appear anywhere in the app. Turning this off hides the
+   * chips, captions and pickers but keeps every timer's `categoryId`, so
+   * turning it back on restores exactly what was there.
+   */
+  categoriesEnabled: boolean;
   /** Id of the category the home list is filtered to, or `null` for all of them. */
   categoryFilter: string | null;
   haptics: boolean;
@@ -24,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   clockFormat: '24h',
   dateOrder: 'dmy',
+  categoriesEnabled: true,
   categoryFilter: null,
   haptics: true,
 };
