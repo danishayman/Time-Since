@@ -1,13 +1,15 @@
-import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { AppIcon } from '@/components/app-icon';
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { CategoryPicker } from '@/components/category-picker';
 import { ColorPicker } from '@/components/color-picker';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-text-input';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
 import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
 import { useSettings } from '@/store/settings-context';
 
@@ -34,6 +36,7 @@ type AndroidStep = 'date' | 'time' | null;
 
 export function TimerForm({ values, onChange }: Props) {
   const theme = useTheme();
+  const scheme = useResolvedScheme();
   const { settings } = useSettings();
   const formatTimestamp = useTimestampFormatter();
   const [androidStep, setAndroidStep] = useState<AndroidStep>(null);
@@ -76,31 +79,30 @@ export function TimerForm({ values, onChange }: Props) {
   };
 
   return (
-    <ScrollView
+    <ScreenScrollView
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag">
-      <ThemedText type="default" style={styles.sectionTitle}>
+      <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
         Label
       </ThemedText>
-      <TextInput
+      <ThemedTextInput
+        accessibilityLabel="Label"
         value={values.label}
         onChangeText={(label) => set({ label })}
         placeholder="For example: No Smoking"
-        placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, borderColor: theme.border }]}
         autoCapitalize="sentences"
         returnKeyType="done"
       />
 
-      <ThemedText type="default" style={styles.sectionTitle}>
+      <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
         Choose color
       </ThemedText>
       <ColorPicker value={values.color} onChange={(color) => set({ color })} />
 
       {settings.categoriesEnabled && (
         <>
-          <ThemedText type="default" style={styles.sectionTitle}>
+          <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
             Category
           </ThemedText>
           <CategoryPicker
@@ -114,8 +116,16 @@ export function TimerForm({ values, onChange }: Props) {
         <Pressable
           onPress={openPicker}
           accessibilityRole="button"
+          // Without this a screen reader gets only the date itself, or the
+          // placeholder, and nothing about what tapping it does.
+          accessibilityLabel={
+            values.startDateTime
+              ? `Event date and time, ${formatTimestamp(values.startDateTime, false)}`
+              : 'Event date and time, not set'
+          }
+          accessibilityHint="Opens a date and time picker"
           style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
-          <Ionicons name="calendar-outline" size={32} color={theme.text} />
+          <AppIcon name="calendar" size={32} color={theme.text} scaleWithText />
           <ThemedText type="default">
             {values.startDateTime
               ? formatTimestamp(values.startDateTime, false)
@@ -126,10 +136,9 @@ export function TimerForm({ values, onChange }: Props) {
         <Pressable
           onPress={() => set({ startDateTime: new Date().toISOString() })}
           accessibilityRole="button"
+          hitSlop={LINK_SLOP}
           style={({ pressed }) => pressed && styles.pressed}>
-          <ThemedText type="linkPrimary" style={styles.link}>
-            or start from now
-          </ThemedText>
+          <ThemedText type="linkPrimary">or start from now</ThemedText>
         </Pressable>
       </View>
 
@@ -137,7 +146,9 @@ export function TimerForm({ values, onChange }: Props) {
         <DateTimePicker
           value={draftDate}
           mode={androidStep}
-          is24Hour
+          // The clock face follows the app's own Clock setting, the same one
+          // the chosen time is then displayed in.
+          is24Hour={settings.clockFormat === '24h'}
           onValueChange={handleAndroidValue}
           onDismiss={() => setAndroidStep(null)}
         />
@@ -148,20 +159,31 @@ export function TimerForm({ values, onChange }: Props) {
           <DateTimePicker
             value={draftDate}
             mode="datetime"
-            display="spinner"
+            // The calendar iOS itself shows for picking a date in a form, with
+            // the time row under it; the wheel spinner is the pre-iOS 14 look.
+            display="inline"
+            accentColor={theme.tint}
+            // The picker letters itself for the device's appearance, not the
+            // app's, unless it is told which one is on screen.
+            themeVariant={scheme}
             onValueChange={handleIosValue}
             onDismiss={() => setShowIosPicker(false)}
           />
-          <Pressable onPress={() => setShowIosPicker(false)} accessibilityRole="button">
-            <ThemedText type="linkPrimary" style={styles.link}>
-              Done
-            </ThemedText>
+          <Pressable
+            onPress={() => setShowIosPicker(false)}
+            accessibilityRole="button"
+            hitSlop={LINK_SLOP}
+            style={({ pressed }) => pressed && styles.pressed}>
+            <ThemedText type="linkPrimary">Done</ThemedText>
           </Pressable>
         </View>
       )}
-    </ScrollView>
+    </ScreenScrollView>
   );
 }
+
+/** A line of link text is 30 high; this takes what answers a tap to 48. */
+const LINK_SLOP = { top: 9, bottom: 9, left: 12, right: 12 };
 
 const styles = StyleSheet.create({
   content: {
@@ -172,13 +194,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     textAlign: 'center',
     fontWeight: '600',
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 4,
-    fontSize: 16,
   },
   dateSection: {
     alignItems: 'center',
@@ -191,9 +206,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
-  },
-  link: {
-    textDecorationLine: 'underline',
   },
   iosPicker: {
     alignItems: 'center',

@@ -1,5 +1,6 @@
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedView } from '@/components/themed-view';
@@ -115,24 +116,24 @@ export default function DataScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <SettingsList footer="Backups are plain JSON — they hold your timers, not your settings.">
-          <SettingsRow icon="share-outline" label="Export timers" onPress={handleExport} />
-          <SettingsRow icon="download-outline" label="Import timers" onPress={handleImport} />
+          <SettingsRow icon="share" label="Export timers" onPress={handleExport} />
+          <SettingsRow icon="import" label="Import timers" onPress={handleImport} />
           <SettingsRow
-            icon="trash-outline"
+            icon="trash"
             label="Delete all timers"
             destructive
             onPress={handleDeleteAll}
           />
           <SettingsRow
-            icon="refresh-outline"
+            icon="reset"
             label="Reset settings"
             destructive
             onPress={handleReset}
           />
         </SettingsList>
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

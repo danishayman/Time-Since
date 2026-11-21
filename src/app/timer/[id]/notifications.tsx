@@ -1,11 +1,19 @@
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Switch, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
+import { SettingsList } from '@/components/settings/settings-list';
+import { SettingsSwitchRow } from '@/components/settings/settings-switch-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTimer, useTimers } from '@/store/timers-context';
 
+/**
+ * Not linked from the timer screen for now — see `REMINDERS_DELIVERED` there.
+ * Kept in the same shape as every other settings screen so it is ready to be
+ * linked again the day reminders are actually delivered.
+ */
 export default function NotificationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const timer = useTimer(id);
@@ -13,7 +21,7 @@ export default function NotificationsScreen() {
 
   if (!timer) {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.missing}>
         <ThemedText type="small" themeColor="textSecondary">
           Timer not found.
         </ThemedText>
@@ -23,18 +31,16 @@ export default function NotificationsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.row}>
-        <ThemedText type="default" style={styles.rowLabel}>
-          Milestone reminders
-        </ThemedText>
-        <Switch
-          value={timer.notificationsEnabled}
-          onValueChange={(enabled) => setNotificationsEnabled(timer.id, enabled)}
-        />
-      </View>
-      <ThemedText type="small" themeColor="textSecondary">
-        The preference is saved, but reminders are not delivered yet.
-      </ThemedText>
+      <ScreenScrollView contentContainerStyle={styles.content}>
+        <SettingsList footer="The preference is saved, but reminders are not delivered yet.">
+          <SettingsSwitchRow
+            icon="notifications"
+            label="Milestone reminders"
+            value={timer.notificationsEnabled}
+            onValueChange={(enabled) => setNotificationsEnabled(timer.id, enabled)}
+          />
+        </SettingsList>
+      </ScreenScrollView>
     </ThemedView>
   );
 }
@@ -42,17 +48,14 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: Spacing.three,
-    gap: Spacing.two,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.two,
+  content: {
+    paddingBottom: Spacing.five,
   },
-  rowLabel: {
+  missing: {
     flex: 1,
-    fontWeight: '600',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.four,
   },
 });

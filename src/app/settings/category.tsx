@@ -1,16 +1,18 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { ColorPicker } from '@/components/color-picker';
 import { HeaderButton } from '@/components/header-button';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-text-input';
 import { ThemedView } from '@/components/themed-view';
 import { DEFAULT_COLOR } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { useDiscardGuard } from '@/hooks/use-discard-guard';
 import { useCategories, useCategory } from '@/store/categories-context';
 import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
@@ -23,7 +25,6 @@ import { successFeedback, warningFeedback } from '@/utils/haptics';
  */
 export default function CategoryScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const existing = useCategory(id);
   const { categories, addCategory, updateCategory, removeCategory } = useCategories();
@@ -35,10 +36,17 @@ export default function CategoryScreen() {
 
   const { haptics } = settings;
 
+  // Save stays unavailable while the name is empty, rather than letting the
+  // tap through and answering it with an alert.
+  const trimmed = name.trim();
+  const canSave = trimmed.length > 0;
+
+  const guard = useDiscardGuard(
+    name !== (existing?.name ?? '') || color !== (existing?.color ?? DEFAULT_COLOR)
+  );
+
   const handleSave = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      Alert.alert('Name required', 'Give the category a name before saving.');
+    if (!canSave) {
       return;
     }
     if (existing) {
@@ -79,29 +87,34 @@ export default function CategoryScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
+          ...guard,
           title: existing ? 'Edit category' : 'New category',
           headerRight: () => (
-            <HeaderButton title="Save" accessibilityLabel="Save category" onPress={handleSave} />
+            <HeaderButton
+              title="Save"
+              accessibilityLabel="Save category"
+              disabled={!canSave}
+              onPress={handleSave}
+            />
           ),
         }}
       />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ThemedText type="default" style={styles.sectionTitle}>
+      <ScreenScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
           Name
         </ThemedText>
-        <TextInput
+        <ThemedTextInput
+          accessibilityLabel="Name"
           value={name}
           onChangeText={setName}
           placeholder="For example: Health"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border }]}
           autoCapitalize="sentences"
           returnKeyType="done"
           onSubmitEditing={handleSave}
         />
 
-        <ThemedText type="default" style={styles.sectionTitle}>
+        <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
           Choose color
         </ThemedText>
         <ColorPicker value={color} onChange={setColor} />
@@ -109,14 +122,14 @@ export default function CategoryScreen() {
         {existing && (
           <SettingsList>
             <SettingsRow
-              icon="trash-outline"
+              icon="trash"
               label="Delete category"
               destructive
               onPress={handleDelete}
             />
           </SettingsList>
         )}
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }
@@ -133,12 +146,5 @@ const styles = StyleSheet.create({
   sectionTitle: {
     textAlign: 'center',
     fontWeight: '600',
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 4,
-    fontSize: 16,
   },
 });

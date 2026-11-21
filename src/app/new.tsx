@@ -1,11 +1,11 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
 
 import { HeaderButton } from '@/components/header-button';
 import { ThemedView } from '@/components/themed-view';
 import { TimerForm, type TimerFormValues } from '@/components/timer-form';
 import { DEFAULT_COLOR } from '@/constants/palette';
+import { useDiscardGuard } from '@/hooks/use-discard-guard';
 import { useSettings } from '@/store/settings-context';
 import { useTimers } from '@/store/timers-context';
 
@@ -13,17 +13,28 @@ export default function NewTimerScreen() {
   const router = useRouter();
   const { addTimer } = useTimers();
   const { settings } = useSettings();
+  // Creating a timer while a category is filtered files it there by default.
+  const [initialCategory] = useState(settings.categoryFilter);
   const [values, setValues] = useState<TimerFormValues>({
     label: '',
     color: DEFAULT_COLOR,
     startDateTime: null,
-    // Creating a timer while a category is filtered files it there by default.
-    categoryId: settings.categoryFilter,
+    categoryId: initialCategory,
   });
 
+  // Start stays unavailable until there is a label, rather than letting the tap
+  // through and answering it with an alert.
+  const canStart = values.label.trim().length > 0;
+
+  const guard = useDiscardGuard(
+    canStart ||
+      values.color !== DEFAULT_COLOR ||
+      values.startDateTime !== null ||
+      values.categoryId !== initialCategory
+  );
+
   const handleStart = () => {
-    if (!values.label.trim()) {
-      Alert.alert('Label required', 'Give the timer a label before starting it.');
+    if (!canStart) {
       return;
     }
     addTimer({
@@ -40,8 +51,14 @@ export default function NewTimerScreen() {
     <ThemedView style={{ flex: 1 }}>
       <Stack.Screen
         options={{
+          ...guard,
           headerRight: () => (
-            <HeaderButton title="Start" accessibilityLabel="Start timer" onPress={handleStart} />
+            <HeaderButton
+              title="Start"
+              accessibilityLabel="Start timer"
+              disabled={!canStart}
+              onPress={handleStart}
+            />
           ),
         }}
       />

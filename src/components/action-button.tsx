@@ -1,23 +1,26 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { AppIcon, type AppIconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useLargeText } from '@/hooks/use-large-text';
 import { useTheme } from '@/hooks/use-theme';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
 type Props = {
-  icon: IconName;
+  icon: AppIconName;
   label: string;
   onPress: () => void;
   disabled?: boolean;
   destructive?: boolean;
 };
 
-/** One icon-over-label cell in the detail screen's action groups. */
+/**
+ * One action in the detail screen's groups: an icon over its label, or a
+ * full-width line with the icon beside the label at the largest text sizes.
+ */
 export function ActionButton({ icon, label, onPress, disabled = false, destructive }: Props) {
   const theme = useTheme();
+  const large = useLargeText();
   const color = disabled ? theme.textSecondary : destructive ? theme.danger : theme.text;
 
   return (
@@ -27,9 +30,13 @@ export function ActionButton({ icon, label, onPress, disabled = false, destructi
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
-      style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && styles.pressed]}>
-      <Ionicons name={icon} size={26} color={color} />
-      <ThemedText type="small" style={[styles.label, { color }]}>
+      style={({ pressed }) => [
+        large ? styles.buttonWide : styles.button,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+      ]}>
+      <AppIcon name={icon} size={26} color={color} scaleWithText />
+      <ThemedText type="small" style={[large ? styles.labelWide : styles.label, { color }]}>
         {label}
       </ThemedText>
     </Pressable>
@@ -43,6 +50,14 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.two,
   },
+  // At the largest text sizes a third of the width cannot hold a label without
+  // breaking it mid-word, so each action takes a full line, icon beside label.
+  buttonWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.three,
+  },
   disabled: {
     opacity: 0.45,
   },
@@ -51,5 +66,8 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: 'center',
+  },
+  labelWide: {
+    flexShrink: 1,
   },
 });

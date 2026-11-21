@@ -2,12 +2,14 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Alert, Share, StyleSheet, View } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { ActionButton } from '@/components/action-button';
 import { DurationBadge } from '@/components/duration-badge';
 import { HeaderButton } from '@/components/header-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useLargeText } from '@/hooks/use-large-text';
 import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
 import { useSettings } from '@/store/settings-context';
 import { useTimer, useTimers } from '@/store/timers-context';
@@ -16,13 +18,26 @@ import { directionOf, signedElapsedMs } from '@/utils/elapsed';
 import { formatDuration } from '@/utils/format-duration';
 import { successFeedback, tapFeedback, warningFeedback } from '@/utils/haptics';
 
+/**
+ * Milestone reminders can be switched on per timer, but nothing schedules or
+ * delivers them yet. Until something does, the way in is left out: a button
+ * that opens a switch with no effect reads as a broken feature. The screen and
+ * the stored preference are untouched, so this is the only line to change when
+ * delivery lands.
+ */
+const REMINDERS_DELIVERED: boolean = false;
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const large = useLargeText();
   return (
     <View style={styles.section}>
-      <ThemedText type="default" style={styles.sectionTitle}>
+      {/* Body size, bold: a step under the timer's name, which is the heading. */}
+      <ThemedText type="default" accessibilityRole="header" style={styles.sectionTitle}>
         {title}
       </ThemedText>
-      <View style={styles.actionRow}>{children}</View>
+      {/* A row of three normally; one action per line at the largest text
+          sizes, where three columns would break the labels mid-word. */}
+      <View style={large ? undefined : styles.actionRow}>{children}</View>
     </View>
   );
 }
@@ -32,6 +47,7 @@ function TimerDetail({ timer }: { timer: Timer }) {
   const { restartTimer, stopTimer, resumeTimer, removeTimer } = useTimers();
   const { settings } = useSettings();
   const formatTimestamp = useTimestampFormatter();
+  const large = useLargeText();
   const { haptics } = settings;
 
   const handleShare = () => {
@@ -83,9 +99,14 @@ function TimerDetail({ timer }: { timer: Timer }) {
     <>
       <Stack.Screen
         options={{
+          // The timer's own name, so the back button on the screens below says
+          // which timer it returns to rather than "Timer". The bar itself stays
+          // empty: the name is printed large right under it.
+          title: timer.label,
+          headerTitle: '',
           headerRight: () => (
             <HeaderButton
-              icon="share-outline"
+              icon="share"
               accessibilityLabel="Share timer"
               onPress={handleShare}
             />
@@ -95,7 +116,7 @@ function TimerDetail({ timer }: { timer: Timer }) {
 
       <View style={styles.hero}>
         <DurationBadge timer={timer} size="detail" />
-        <ThemedText type="default" style={styles.label}>
+        <ThemedText type="heading" accessibilityRole="header" style={styles.label}>
           {timer.label}
         </ThemedText>
         {!timer.isRunning && (
@@ -106,7 +127,7 @@ function TimerDetail({ timer }: { timer: Timer }) {
       </View>
 
       <Section title="Actions">
-        <ActionButton icon="refresh" label="Restart" onPress={handleRestart} />
+        <ActionButton icon="restart" label="Restart" onPress={handleRestart} />
         <ActionButton
           icon="play"
           label="Resume"
@@ -117,7 +138,7 @@ function TimerDetail({ timer }: { timer: Timer }) {
           }}
         />
         <ActionButton
-          icon="square-outline"
+          icon="stop"
           label="Stop"
           disabled={!timer.isRunning}
           onPress={() => {
@@ -129,50 +150,53 @@ function TimerDetail({ timer }: { timer: Timer }) {
 
       <Section title="Options">
         <ActionButton
-          icon="pencil"
+          icon="edit"
           label="Edit"
           onPress={() =>
             router.push({ pathname: '/timer/[id]/edit', params: { id: timer.id } })
           }
         />
         <ActionButton
-          icon="stopwatch-outline"
+          icon="format"
           label="Format"
           onPress={() =>
             router.push({ pathname: '/timer/[id]/format', params: { id: timer.id } })
           }
         />
-        <ActionButton icon="trash-outline" label="Delete" destructive onPress={handleDelete} />
+        <ActionButton icon="trash" label="Delete" destructive onPress={handleDelete} />
       </Section>
 
-      <Section title="Complements">
+      <Section title="More">
         <ActionButton
-          icon="stats-chart"
+          icon="stats"
           label="Restarts"
           onPress={() =>
             router.push({ pathname: '/timer/[id]/restarts', params: { id: timer.id } })
           }
         />
-        <ActionButton
-          icon="notifications-outline"
-          label="Notifications"
-          onPress={() =>
-            router.push({ pathname: '/timer/[id]/notifications', params: { id: timer.id } })
-          }
-        />
+        {REMINDERS_DELIVERED && (
+          <ActionButton
+            icon="notifications"
+            label="Notifications"
+            onPress={() =>
+              router.push({ pathname: '/timer/[id]/notifications', params: { id: timer.id } })
+            }
+          />
+        )}
         {settings.categoriesEnabled ? (
           <ActionButton
-            icon="pricetags-outline"
+            icon="category"
             label="Category"
             onPress={() =>
               router.push({ pathname: '/timer/[id]/category', params: { id: timer.id } })
             }
           />
         ) : (
-          // Holds the third column so the two remaining buttons keep their
-          // places rather than spreading across the row.
-          <View style={styles.spacer} />
+          // Holds a column so the remaining buttons keep their places rather
+          // than spreading across the row. Nothing to hold in a single column.
+          !large && <View style={styles.spacer} />
         )}
+        {!REMINDERS_DELIVERED && !large && <View style={styles.spacer} />}
       </Section>
 
       <ThemedText type="small" themeColor="textSecondary" style={styles.footer}>
@@ -188,13 +212,18 @@ export default function TimerDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {timer ? (
-        <TimerDetail timer={timer} />
-      ) : (
-        <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
-          Timer not found.
-        </ThemedText>
-      )}
+      {/* Scrolls so nothing is cut off when the three action groups outgrow the
+          screen: a small phone, a large text size, or half of a split screen.
+          `flexGrow` keeps the footer pinned to the bottom when there is room. */}
+      <ScreenScrollView contentContainerStyle={styles.content}>
+        {timer ? (
+          <TimerDetail timer={timer} />
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.missing}>
+            Timer not found.
+          </ThemedText>
+        )}
+      </ScreenScrollView>
     </ThemedView>
   );
 }
@@ -202,6 +231,9 @@ export default function TimerDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     padding: Spacing.three,
   },
   hero: {
@@ -210,8 +242,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
   },
   label: {
-    fontWeight: '700',
-    fontSize: 18,
     textAlign: 'center',
   },
   section: {
@@ -220,7 +250,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: '700',
-    fontSize: 18,
   },
   actionRow: {
     flexDirection: 'row',
@@ -232,6 +261,9 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 'auto',
     textAlign: 'center',
+    // Clear of the last action row once the content is tall enough to scroll
+    // and there is no spare room left for `marginTop: 'auto'` to open up.
+    paddingTop: Spacing.four,
     paddingBottom: Spacing.three,
   },
   missing: {

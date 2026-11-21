@@ -1,12 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { HeaderButton } from '@/components/header-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TimerForm, type TimerFormValues } from '@/components/timer-form';
 import { Spacing } from '@/constants/theme';
+import { useDiscardGuard } from '@/hooks/use-discard-guard';
 import { useTimer, useTimers } from '@/store/timers-context';
 import type { Timer } from '@/types/timer';
 
@@ -20,9 +21,19 @@ function EditForm({ timer }: { timer: Timer }) {
     categoryId: timer.categoryId,
   });
 
+  // Save stays unavailable while the label is empty, rather than letting the
+  // tap through and answering it with an alert.
+  const canSave = values.label.trim().length > 0;
+
+  const guard = useDiscardGuard(
+    values.label !== timer.label ||
+      values.color !== timer.color ||
+      values.startDateTime !== timer.startDateTime ||
+      values.categoryId !== timer.categoryId
+  );
+
   const handleSave = () => {
-    if (!values.label.trim()) {
-      Alert.alert('Label required', 'Give the timer a label before saving.');
+    if (!canSave) {
       return;
     }
     updateTimer(timer.id, {
@@ -38,8 +49,14 @@ function EditForm({ timer }: { timer: Timer }) {
     <>
       <Stack.Screen
         options={{
+          ...guard,
           headerRight: () => (
-            <HeaderButton title="Save" accessibilityLabel="Save timer" onPress={handleSave} />
+            <HeaderButton
+              title="Save"
+              accessibilityLabel="Save timer"
+              disabled={!canSave}
+              onPress={handleSave}
+            />
           ),
         }}
       />

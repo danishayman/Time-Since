@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { FormatPicker } from '@/components/format-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -32,7 +33,7 @@ export default function TimerFormatScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <FormatPicker
           value={timer.format}
           previewMs={signedElapsedMs(timer, now)}
@@ -41,7 +42,7 @@ export default function TimerFormatScreen() {
             setFormat(timer.id, format);
           }}
         />
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

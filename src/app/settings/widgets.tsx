@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
-import { SettingsRow, type IoniconName } from '@/components/settings/settings-row';
+import type { AppIconName } from '@/components/app-icon';
+import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -12,11 +14,11 @@ import { tapFeedback } from '@/utils/haptics';
 import { pinTimerWidget } from '@/widgets/pin';
 import { WIDGET_LABELS, WIDGET_NAMES, type WidgetName } from '@/widgets/widget-variants';
 
-const ICONS: Record<WidgetName, IoniconName> = {
-  TimerStandard: 'square',
-  TimerTransparentLight: 'square-outline',
-  TimerTransparentDark: 'square-outline',
-  TimerRestart: 'refresh-circle-outline',
+const ICONS: Record<WidgetName, AppIconName> = {
+  TimerStandard: 'widget-standard',
+  TimerTransparentLight: 'widget-transparent',
+  TimerTransparentDark: 'widget-transparent',
+  TimerRestart: 'widget-restart',
 };
 
 const DESCRIPTIONS: Record<WidgetName, string> = {
@@ -61,11 +63,10 @@ export default function WidgetsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          Every style is free. Choose one to add it to the home screen, then pick which timer
-          it counts — or hold an empty spot on the home screen and find Time Since under
-          Widgets. Hold a placed widget and choose Configure to point it at a different timer.
+          Choose a style to add it to the home screen, then pick which timer it counts — or
+          hold an empty spot on the home screen and find Time Since under Widgets. Hold a placed widget and choose Configure to point it at a different timer.
         </ThemedText>
 
         <SettingsList
@@ -81,7 +82,6 @@ export default function WidgetsScreen() {
               label={WIDGET_LABELS[name]}
               description={DESCRIPTIONS[name]}
               onPress={() => pin(name)}
-              showChevron={false}
             />
           ))}
         </SettingsList>
@@ -99,7 +99,7 @@ export default function WidgetsScreen() {
           in days and larger always look right; one counting in hours, minutes and seconds is
           accurate as of its last redraw, so open the app to bring it current.
         </ThemedText>
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

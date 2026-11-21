@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSwitchRow } from '@/components/settings/settings-switch-row';
@@ -43,7 +44,7 @@ export default function CategoriesScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <SettingsList
           footer={
             enabled
@@ -51,7 +52,7 @@ export default function CategoriesScreen() {
               : 'Your timers keep the category they were filed under, so turning this back on restores them.'
           }>
           <SettingsSwitchRow
-            icon="pricetags-outline"
+            icon="category"
             label="Use categories"
             description="Off hides the chips, labels and pickers everywhere"
             value={enabled}
@@ -65,14 +66,15 @@ export default function CategoriesScreen() {
               {categories.map((category) => (
                 <SettingsRow
                   key={category.id}
-                  icon="ellipse"
+                  icon="dot"
                   iconColor={category.color}
                   label={category.name}
                   value={plural(counts[category.id] ?? 0)}
+                  navigates
                   onPress={() => open(category.id)}
                 />
               ))}
-              <SettingsRow icon="add" label="New category" onPress={() => open()} />
+              <SettingsRow icon="add" label="New category" navigates onPress={() => open()} />
             </SettingsList>
 
             {categories.length === 0 && (
@@ -84,7 +86,7 @@ export default function CategoriesScreen() {
             )}
           </>
         )}
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

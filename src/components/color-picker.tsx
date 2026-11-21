@@ -1,7 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { PALETTE, PALETTE_COLUMNS, contrastingTextColor } from '@/constants/palette';
+import { AppIcon } from '@/components/app-icon';
+import {
+  PALETTE,
+  PALETTE_COLUMNS,
+  PALETTE_NAMES,
+  contrastingTextColor,
+} from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -18,7 +23,7 @@ export function ColorPicker({ value, onChange }: Props) {
   const theme = useTheme();
 
   return (
-    <View style={styles.grid}>
+    <View style={styles.grid} accessibilityRole="radiogroup">
       {ROWS.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.row}>
           {row.map((color) => {
@@ -29,7 +34,7 @@ export function ColorPicker({ value, onChange }: Props) {
                 onPress={() => onChange(color)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`Color ${color}`}
+                accessibilityLabel={PALETTE_NAMES[color]}
                 style={({ pressed }) => [
                   styles.swatch,
                   { backgroundColor: color },
@@ -37,7 +42,7 @@ export function ColorPicker({ value, onChange }: Props) {
                   pressed && styles.pressed,
                 ]}>
                 {selected && (
-                  <Ionicons name="checkmark" size={22} color={contrastingTextColor(color)} />
+                  <AppIcon name="checkmark" size={22} color={contrastingTextColor(color)} />
                 )}
               </Pressable>
             );

@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { AppIcon } from '@/components/app-icon';
 import { useTheme } from '@/hooks/use-theme';
 
 type Props = {
@@ -23,7 +23,7 @@ export function Fab({ onPress, accessibilityLabel, bottom, right }: Props) {
         { backgroundColor: theme.text, bottom, right },
         pressed && styles.pressed,
       ]}>
-      <Ionicons name="add" size={30} color={theme.background} />
+      <AppIcon name="add" size={30} color={theme.background} />
     </Pressable>
   );
 }

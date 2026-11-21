@@ -40,7 +40,7 @@ export function FormatPicker({ value, onChange, previewMs }: Props) {
         <ThemedText type="small" themeColor="textSecondary">
           Preview
         </ThemedText>
-        <ThemedText type="default" style={styles.previewValue}>
+        <ThemedText type="heading" style={styles.previewValue}>
           {formatDuration(previewMs, selected)}
         </ThemedText>
       </View>
@@ -70,8 +70,6 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.three,
   },
   previewValue: {
-    fontSize: 22,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
 });

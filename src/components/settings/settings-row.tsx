@@ -1,20 +1,22 @@
-import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type AccessibilityRole } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, type AccessibilityRole } from 'react-native';
 
+import { AppIcon, type AppIconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useLargeText } from '@/hooks/use-large-text';
 import { useTheme } from '@/hooks/use-theme';
-
-export type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const ICON_SIZE = 24;
 
-/** Where a row's text starts, so anything nested under one can line up with it. */
-export const ROW_TEXT_INSET = Spacing.four + ICON_SIZE + Spacing.three;
+/** Smaller and quieter than the row's own icon, as the iOS disclosure indicator is. */
+const DISCLOSURE_SIZE = 14;
+
+/** iOS convention, mirrored on web; see `navigates`. */
+const SHOW_DISCLOSURE = Platform.OS !== 'android';
 
 type Props = {
-  icon: IoniconName;
+  icon: AppIconName;
   /** Overrides the icon's colour, for rows that stand for a coloured thing. */
   iconColor?: string;
   label: string;
@@ -22,16 +24,29 @@ type Props = {
   description?: string;
   /** Right-aligned secondary text, typically the current value. */
   value?: string;
-  /** Right-hand slot, for a switch or a swatch. Rendered after `value`. */
+  /**
+   * A value that is not plain text, such as a ticking duration or a picker.
+   * Placed like `value`: at the end of the row, or under the label at large
+   * text sizes.
+   */
+  valueElement?: ReactNode;
+  /** Right-hand slot for a fixed-width control such as a switch. Always trailing. */
   right?: ReactNode;
   onPress?: () => void;
   /** Paints the icon and label with the danger colour. */
   destructive?: boolean;
-  showChevron?: boolean;
-  /** Points down when collapsed and up when expanded, for the picker rows. */
-  chevronUp?: boolean;
+  /**
+   * The row opens another screen. On iOS that is shown with a trailing chevron,
+   * so it reads differently from a row that acts where it is; Material marks
+   * neither, so Android shows nothing.
+   */
+  navigates?: boolean;
   accessibilityRole?: AccessibilityRole;
+  /** What tapping the row does, where the label alone does not say. */
+  accessibilityHint?: string;
   accessibilityState?: ComponentProps<typeof Pressable>['accessibilityState'];
+  /** What a screen reader gives as the row's value. Defaults to `value`. */
+  accessibilityValue?: string;
 };
 
 /**
@@ -46,20 +61,36 @@ export function SettingsRow({
   label,
   description,
   value,
+  valueElement,
   right,
   onPress,
   destructive = false,
-  showChevron = false,
-  chevronUp = false,
+  navigates = false,
   accessibilityRole,
+  accessibilityHint,
   accessibilityState,
+  accessibilityValue,
 }: Props) {
   const theme = useTheme();
+  const large = useLargeText();
   const tint = destructive ? theme.danger : theme.text;
+  const spokenValue = accessibilityValue ?? value;
+
+  const valueNode =
+    value || valueElement ? (
+      <>
+        {value ? (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={large ? undefined : 1}>
+            {value}
+          </ThemedText>
+        ) : null}
+        {valueElement}
+      </>
+    ) : null;
 
   const content = (
     <>
-      <Ionicons name={icon} size={ICON_SIZE} color={iconColor ?? tint} />
+      <AppIcon name={icon} size={ICON_SIZE} color={iconColor ?? tint} scaleWithText />
 
       <View style={styles.labels}>
         <ThemedText type="default" style={[styles.label, { color: tint }]}>
@@ -70,23 +101,18 @@ export function SettingsRow({
             {description}
           </ThemedText>
         ) : null}
+        {/* At the largest text sizes the value moves under the label, which
+            would otherwise be squeezed to a letter or two per line. */}
+        {large && valueNode ? <View style={styles.valueBelow}>{valueNode}</View> : null}
       </View>
 
-      {value ? (
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-          {value}
-        </ThemedText>
-      ) : null}
+      {large ? null : valueNode}
 
       {right}
 
-      {showChevron && (
-        <Ionicons
-          name={chevronUp ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={theme.textSecondary}
-        />
-      )}
+      {navigates && SHOW_DISCLOSURE ? (
+        <AppIcon name="disclosure" size={DISCLOSURE_SIZE} color={theme.textSecondary} scaleWithText />
+      ) : null}
     </>
   );
 
@@ -98,7 +124,12 @@ export function SettingsRow({
     <Pressable
       onPress={onPress}
       accessibilityRole={accessibilityRole ?? 'button'}
-      accessibilityLabel={label}
+      // A label replaces everything inside the row for a screen reader, so the
+      // second line and the current value have to be handed over explicitly or
+      // they are never spoken: "Theme" with no "Dark", a category with no count.
+      accessibilityLabel={description ? `${label}, ${description}` : label}
+      aria-valuetext={spokenValue}
+      accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState}
       style={({ pressed }) => [
         styles.row,
@@ -122,8 +153,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.half,
   },
+  valueBelow: {
+    alignItems: 'flex-start',
+  },
   label: {
-    fontSize: 17,
     fontWeight: '600',
   },
 });

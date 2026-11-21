@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { contrastingTextColor } from '@/constants/palette';
+import { contrastingTextColor, mixColors, readableTextColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -29,22 +29,26 @@ export function CategoryChip({
 }: Props) {
   const theme = useTheme();
   const fill = color ?? theme.text;
+  // What the unselected chip actually paints behind its label: the wash laid
+  // over the screen, flattened so the label can be checked against it.
+  const wash = color ? mixColors(color, theme.background, TINT) : theme.background;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={label}
-      accessibilityState={accessibilityRole === 'radio' ? { selected } : { selected }}
+      accessibilityState={{ selected }}
+      // The pill is 38 high; this takes the area that answers a tap to 48
+      // without making the row of chips any taller.
+      hitSlop={CHIP_SLOP}
       style={({ pressed }) => [
         styles.chip,
         selected
           ? { backgroundColor: fill, borderColor: fill }
           : {
               // A wash of the category's own colour rather than a bare outline.
-              // `TINT` is an eight-digit hex alpha, which the palette's plain
-              // `#RRGGBB` values take directly.
-              backgroundColor: color ? `${color}${TINT}` : theme.background,
+              backgroundColor: wash,
               borderColor: color ?? theme.border,
             },
         pressed && styles.pressed,
@@ -55,8 +59,9 @@ export function CategoryChip({
         style={
           selected
             ? { color: contrastingTextColor(fill) }
-            : // Its own colour while unselected; "All" has none and stays grey.
-              { color: color ?? theme.textSecondary }
+            : // Its own colour while unselected, deepened or lifted as far as it
+              // takes to read on the wash; "All" has none and stays grey.
+              { color: color ? readableTextColor(color, wash) : theme.textSecondary }
         }>
         {label}
       </ThemedText>
@@ -64,8 +69,10 @@ export function CategoryChip({
   );
 }
 
-/** ~18% — enough to read as a fill without swamping the label sat on it. */
-const TINT = '2E';
+/** 18% — enough to read as a fill without swamping the label sat on it. */
+const TINT = 0.18;
+
+const CHIP_SLOP = { top: 5, bottom: 5 };
 
 const styles = StyleSheet.create({
   chip: {

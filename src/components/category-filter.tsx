@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AppIcon } from '@/components/app-icon';
 import { CategoryChip } from '@/components/category-chip';
 import { contrastingTextColor } from '@/constants/palette';
 import { Spacing } from '@/constants/theme';
@@ -52,14 +52,14 @@ export function CategoryFilter({ categories, value, onChange, onAdd }: Props) {
           accessibilityRole="button"
           accessibilityLabel="New category"
           // Deliberately smaller than a chip, so the touch area is padded back
-          // out to something comfortable.
-          hitSlop={Spacing.two}
+          // out to 48 — exactly the room the row's own padding leaves it.
+          hitSlop={Spacing.two + 2}
           style={({ pressed }) => [
             styles.add,
             { backgroundColor: theme.text },
             pressed && styles.pressed,
           ]}>
-          <Ionicons name="add" size={16} color={contrastingTextColor(theme.text)} />
+          <AppIcon name="add" size={16} color={contrastingTextColor(theme.text)} />
         </Pressable>
       </ScrollView>
     </View>

@@ -26,10 +26,9 @@ export function CategoryPicker({ value, onChange }: Props) {
       <Pressable
         onPress={() => router.push('/settings/categories')}
         accessibilityRole="button"
+        hitSlop={{ top: 9, bottom: 9 }}
         style={({ pressed }) => [styles.empty, pressed && styles.pressed]}>
-        <ThemedText type="linkPrimary" style={styles.link}>
-          Create a category
-        </ThemedText>
+        <ThemedText type="linkPrimary">Create a category</ThemedText>
       </Pressable>
     );
   }
@@ -65,9 +64,6 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: 'center',
-  },
-  link: {
-    textDecorationLine: 'underline',
   },
   pressed: {
     opacity: 0.6,

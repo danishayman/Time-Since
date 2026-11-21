@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -35,8 +36,15 @@ export function SettingsCheckboxRow({ label, checked, onToggle, disabled = false
         {label}
       </ThemedText>
 
-      <View style={[styles.box, { borderColor: checked ? theme.text : theme.textSecondary }]}>
-        {checked && <View style={[styles.mark, { backgroundColor: theme.text }]} />}
+      {/* Filled with a tick when on, the way both platforms draw a checkbox;
+          a smaller square inside the box read as a radio button or a stop. */}
+      <View
+        style={[
+          styles.box,
+          { borderColor: checked ? theme.text : theme.textSecondary },
+          checked && { backgroundColor: theme.text },
+        ]}>
+        {checked && <AppIcon name="checkmark" size={18} color={theme.background} />}
       </View>
     </Pressable>
   );
@@ -56,20 +64,14 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontSize: 17,
     fontWeight: '600',
   },
   box: {
     width: 24,
     height: 24,
-    borderRadius: Spacing.two,
+    borderRadius: 6,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  mark: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
   },
 });

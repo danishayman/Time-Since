@@ -1,9 +1,9 @@
-import { Switch } from 'react-native';
-
-import { SettingsRow, type IoniconName } from '@/components/settings/settings-row';
+import type { AppIconName } from '@/components/app-icon';
+import { SettingsRow } from '@/components/settings/settings-row';
+import { ThemedSwitch } from '@/components/themed-switch';
 
 type Props = {
-  icon: IoniconName;
+  icon: AppIconName;
   label: string;
   description?: string;
   value: boolean;
@@ -21,7 +21,15 @@ export function SettingsSwitchRow({ icon, label, description, value, onValueChan
       // Tapping anywhere on the row toggles it, not just the switch itself.
       onPress={() => onValueChange(!value)}
       right={
-        <Switch value={value} onValueChange={onValueChange} accessibilityLabel={label} />
+        <ThemedSwitch
+          value={value}
+          onValueChange={onValueChange}
+          // The row already announces itself as this switch. Left visible to a
+          // screen reader as well, TalkBack stops on the same control twice.
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        />
       }
     />
   );

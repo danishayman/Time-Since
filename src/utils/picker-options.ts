@@ -1,4 +1,4 @@
-import type { PickerOption } from '@/components/settings/settings-picker-row';
+import type { PickerOption } from '@/components/settings/settings-picker-types';
 
 /**
  * Turns one of the label records in `@/types/settings` into picker options,

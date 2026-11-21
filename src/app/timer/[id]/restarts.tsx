@@ -1,11 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 
+import { useScreenScrollStyles } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useTimestampFormatter } from '@/hooks/use-timestamp-formatter';
 import { useSettings } from '@/store/settings-context';
 import { useTimer, useTimers } from '@/store/timers-context';
@@ -42,6 +44,9 @@ function RestartHistory({ timer }: { timer: Timer }) {
   const { clearRestarts } = useTimers();
   const formatTimestamp = useTimestampFormatter();
 
+  const theme = useTheme();
+  const screen = useScreenScrollStyles(styles.content);
+
   const count = timer.restarts.length;
   const duration = (ms: number) => formatDuration(ms, timer.format);
 
@@ -57,53 +62,84 @@ function RestartHistory({ timer }: { timer: Timer }) {
     );
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <SettingsList>
-        <SettingsRow icon="refresh" label="Restarts" value={`${count}`} />
-        <SettingsRow
-          icon="trophy-outline"
-          label="Longest run"
-          right={<LiveDuration timer={timer} longest />}
-        />
-        <SettingsRow icon="play-outline" label="Current run" right={<LiveDuration timer={timer} />} />
-      </SettingsList>
+  const divider = <View style={[styles.divider, { backgroundColor: theme.border }]} />;
 
-      {count === 0 ? (
+  // Virtualized because the log keeps up to `MAX_RESTARTS` entries, and laying
+  // out every one of them on open made the screen slow to appear. The summary
+  // and the Clear row ride along as the list's header and footer, and each
+  // entry draws the hairline above itself, so the screen looks exactly as the
+  // `SettingsList` version did.
+  return (
+    <FlatList
+      {...screen}
+      // Newest first: the most recent run is the one being compared against,
+      // and the list would otherwise have to be scrolled to the bottom to find it.
+      data={[...timer.restarts].reverse()}
+      keyExtractor={(entry, index) => `${entry.at}-${index}`}
+      ListHeaderComponent={
+        <View>
+          <SettingsList>
+            <SettingsRow icon="restart" label="Restarts" value={`${count}`} />
+            <SettingsRow
+              icon="trophy"
+              label="Longest run"
+              valueElement={<LiveDuration timer={timer} longest />}
+            />
+            <SettingsRow
+              icon="play"
+              label="Current run"
+              valueElement={<LiveDuration timer={timer} />}
+            />
+          </SettingsList>
+
+          {count > 0 && (
+            <ThemedText
+              type="smallBold"
+              themeColor="textSecondary"
+              accessibilityRole="header"
+              style={styles.heading}>
+              HISTORY
+            </ThemedText>
+          )}
+        </View>
+      }
+      ListEmptyComponent={
         <ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
           No restarts yet. Each time you restart this timer, how long it had run gets logged here.
         </ThemedText>
-      ) : (
-        <>
-          <ThemedText type="smallBold" themeColor="textSecondary" style={styles.heading}>
-            HISTORY
-          </ThemedText>
-
-          <SettingsList footer={`Only the last ${MAX_RESTARTS} restarts are kept.`}>
-            {/* Newest first: the most recent run is the one being compared
-                against, and the list would otherwise have to be scrolled to the
-                bottom to find it. */}
-            {[...timer.restarts].reverse().map((entry, index) => (
-              <SettingsRow
-                key={`${entry.at}-${index}`}
-                icon="refresh"
-                label={`Ran for ${duration(entry.lastedMs)}`}
-                description={`Restarted ${formatTimestamp(entry.at, false)}`}
-              />
-            ))}
-          </SettingsList>
-
-          <SettingsList>
-            <SettingsRow
-              icon="trash-outline"
-              label="Clear history"
-              destructive
-              onPress={handleClear}
-            />
-          </SettingsList>
-        </>
+      }
+      renderItem={({ item }) => (
+        <View>
+          {divider}
+          <SettingsRow
+            icon="restart"
+            label={`Ran for ${duration(item.lastedMs)}`}
+            description={`Restarted ${formatTimestamp(item.at, false)}`}
+          />
+        </View>
       )}
-    </ScrollView>
+      ListFooterComponent={
+        count > 0 ? (
+          <View>
+            {divider}
+            <ThemedText type="small" themeColor="textSecondary" style={styles.footnote}>
+              {`Only the last ${MAX_RESTARTS} restarts are kept.`}
+            </ThemedText>
+
+            <View style={styles.clear}>
+              <SettingsList>
+                <SettingsRow
+                  icon="trash"
+                  label="Clear history"
+                  destructive
+                  onPress={handleClear}
+                />
+              </SettingsList>
+            </View>
+          </View>
+        ) : null
+      }
+    />
   );
 }
 
@@ -128,17 +164,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // No `gap` here: on a FlatList it would open up between every entry too, so
+  // the spacing between the sections is set on the sections themselves.
   content: {
-    gap: Spacing.four,
     paddingBottom: Spacing.five,
   },
   heading: {
     paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.two,
     letterSpacing: 0.8,
-    marginBottom: -Spacing.three,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  footnote: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.three,
+  },
+  clear: {
+    marginTop: Spacing.four,
   },
   empty: {
     paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.four,
     textAlign: 'center',
   },
   missing: {

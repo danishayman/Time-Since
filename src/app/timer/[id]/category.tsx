@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { AppIcon } from '@/components/app-icon';
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
@@ -49,14 +50,14 @@ export default function TimerCategoryScreen() {
   };
 
   const check = (selected: boolean) =>
-    selected ? <Ionicons name="checkmark" size={20} color={theme.text} /> : undefined;
+    selected ? <AppIcon name="checkmark" size={20} color={theme.text} /> : undefined;
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <SettingsList footer="A timer belongs to one category at most.">
           <SettingsRow
-            icon="remove-circle-outline"
+            icon="none"
             label="None"
             accessibilityRole="radio"
             accessibilityState={{ selected: !current }}
@@ -66,7 +67,7 @@ export default function TimerCategoryScreen() {
           {categories.map((category) => (
             <SettingsRow
               key={category.id}
-              icon="ellipse"
+              icon="dot"
               iconColor={category.color}
               label={category.name}
               accessibilityRole="radio"
@@ -82,7 +83,7 @@ export default function TimerCategoryScreen() {
             No categories yet. Add one under Settings, then come back here.
           </ThemedText>
         )}
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

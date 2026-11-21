@@ -1,8 +1,10 @@
 import { useRouter, type Href } from 'expo-router';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
-import { SettingsRow, type IoniconName } from '@/components/settings/settings-row';
+import type { AppIconName } from '@/components/app-icon';
+import { SettingsRow } from '@/components/settings/settings-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -12,20 +14,20 @@ import { tapFeedback } from '@/utils/haptics';
 
 type Destination = {
   href: Href;
-  icon: IoniconName;
+  icon: AppIconName;
   label: string;
 };
 
 const DESTINATIONS: Destination[] = [
-  { href: '/settings/appearance', icon: 'color-palette-outline', label: 'Appearance' },
-  { href: '/settings/categories', icon: 'pricetags-outline', label: 'Categories' },
+  { href: '/settings/appearance', icon: 'appearance', label: 'Appearance' },
+  { href: '/settings/categories', icon: 'category', label: 'Categories' },
   // Android only: iOS has no equivalent target, so the row would lead to a
   // screen that can only apologise.
   ...(Platform.OS === 'android'
-    ? ([{ href: '/settings/widgets', icon: 'grid-outline', label: 'Widgets' }] as Destination[])
+    ? ([{ href: '/settings/widgets', icon: 'widgets', label: 'Widgets' }] as Destination[])
     : []),
-  { href: '/settings/data', icon: 'archive-outline', label: 'Data' },
-  { href: '/settings/about', icon: 'information-circle-outline', label: 'About' },
+  { href: '/settings/data', icon: 'data', label: 'Data' },
+  { href: '/settings/about', icon: 'info', label: 'About' },
 ];
 
 export default function SettingsScreen() {
@@ -35,13 +37,14 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <SettingsList>
           {DESTINATIONS.map(({ href, icon, label }) => (
             <SettingsRow
               key={label}
               icon={icon}
               label={label}
+              navigates
               value={
                 label === 'Categories' && settings.categoriesEnabled && categories.length > 0
                   ? `${categories.length}`
@@ -58,7 +61,7 @@ export default function SettingsScreen() {
         <ThemedText type="small" themeColor="textSecondary" style={styles.tagline}>
           Time Since keeps everything on this device.
         </ThemedText>
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

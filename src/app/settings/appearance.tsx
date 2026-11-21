@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { ScreenScrollView } from '@/components/screen-scroll-view';
 import { SettingsList } from '@/components/settings/settings-list';
 import { SettingsPickerRow } from '@/components/settings/settings-picker-row';
 import { SettingsSwitchRow } from '@/components/settings/settings-switch-row';
@@ -18,66 +18,51 @@ import {
 import { optionsFrom } from '@/utils/picker-options';
 import { tapFeedback } from '@/utils/haptics';
 
-type PickerKey = 'theme' | 'clock' | 'dateOrder';
-
 const THEME_OPTIONS = optionsFrom<ThemePreference>(THEME_LABELS);
 const CLOCK_OPTIONS = optionsFrom<ClockFormat>(CLOCK_LABELS);
 const DATE_ORDER_OPTIONS = optionsFrom<DateOrder>(DATE_ORDER_LABELS);
 
 export default function AppearanceScreen() {
   const { settings, setSetting } = useSettings();
-  const [openPicker, setOpenPicker] = useState<PickerKey | null>(null);
 
   const { haptics } = settings;
 
-  const toggle = (key: PickerKey) => {
-    tapFeedback(haptics);
-    setOpenPicker((current) => (current === key ? null : key));
-  };
-
-  /** Applies a choice, buzzes, and collapses the picker it came from. */
+  /** Applies a choice from one of the pickers, with a buzz. */
   const choose = <K extends 'theme' | 'clockFormat' | 'dateOrder'>(
     key: K,
     value: (typeof settings)[K]
   ) => {
     tapFeedback(haptics);
     setSetting(key, value);
-    setOpenPicker(null);
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenScrollView contentContainerStyle={styles.content}>
         <SettingsList>
           <SettingsPickerRow
-            icon="contrast-outline"
+            icon="theme"
             label="Theme"
             options={THEME_OPTIONS}
             value={settings.theme}
             onChange={(value) => choose('theme', value)}
-            expanded={openPicker === 'theme'}
-            onToggle={() => toggle('theme')}
           />
           <SettingsPickerRow
-            icon="time-outline"
+            icon="clock"
             label="Clock"
             options={CLOCK_OPTIONS}
             value={settings.clockFormat}
             onChange={(value) => choose('clockFormat', value)}
-            expanded={openPicker === 'clock'}
-            onToggle={() => toggle('clock')}
           />
           <SettingsPickerRow
-            icon="calendar-outline"
+            icon="calendar"
             label="Date order"
             options={DATE_ORDER_OPTIONS}
             value={settings.dateOrder}
             onChange={(value) => choose('dateOrder', value)}
-            expanded={openPicker === 'dateOrder'}
-            onToggle={() => toggle('dateOrder')}
           />
           <SettingsSwitchRow
-            icon="phone-portrait-outline"
+            icon="haptics"
             label="Haptic feedback"
             description="A small buzz when a timer is restarted, stopped or deleted"
             value={settings.haptics}
@@ -88,7 +73,7 @@ export default function AppearanceScreen() {
             }}
           />
         </SettingsList>
-      </ScrollView>
+      </ScreenScrollView>
     </ThemedView>
   );
 }

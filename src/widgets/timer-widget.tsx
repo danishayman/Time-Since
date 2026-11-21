@@ -9,7 +9,7 @@
 
 import { FlexWidget, SvgWidget, TextWidget, type ColorProp } from 'react-native-android-widget';
 
-import { contrastingTextColor } from '@/constants/palette';
+import { DEFAULT_COLOR, contrastingTextColor } from '@/constants/palette';
 import type { Timer } from '@/types/timer';
 import { formatForWidget } from '@/widgets/format-for-widget';
 import { hourglassSvg, restartSvg } from '@/widgets/widget-icons';
@@ -143,8 +143,9 @@ export function TimerWidget({ timer, now, variant }: Props) {
           clickActionData={{ timerId: timer.id }}
           accessibilityLabel={`Restart ${timer.label}`}
           style={{
-            width: 44,
-            height: 44,
+            // Android's minimum touch target.
+            width: 48,
+            height: 48,
             alignItems: 'center',
             justifyContent: 'center',
             marginLeft: 8,
@@ -175,7 +176,7 @@ export function drawTimerWidget(timer: Timer, variant: WidgetVariant) {
  * tappable and says what to do.
  */
 export function UnboundWidget({ variant }: { variant: WidgetVariant }) {
-  const { background, ink } = paletteFor(variant, '#BDE3FA');
+  const { background, ink } = paletteFor(variant, DEFAULT_COLOR);
 
   return (
     <FlexWidget

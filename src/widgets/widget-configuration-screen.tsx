@@ -9,9 +9,10 @@ import {
   useColorScheme,
 } from 'react-native';
 import type { WidgetConfigurationScreenProps } from 'react-native-android-widget';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { contrastingTextColor } from '@/constants/palette';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Type } from '@/constants/theme';
 import { bindWidget, loadSettings, loadTimers } from '@/store/storage';
 import type { Timer } from '@/types/timer';
 import { formatForWidget } from '@/widgets/format-for-widget';
@@ -28,12 +29,21 @@ import { WIDGET_LABELS, variantOf, type WidgetName } from '@/widgets/widget-vari
  * Everything it needs is read from storage directly, including the theme
  * override, so that a user who has pinned the app to light or dark does not get
  * a system-themed screen thrown at them from the home screen.
+ *
+ * The same goes for the safe area: the app's root provider is not above this
+ * screen, so it brings its own, or the title would sit under the status bar and
+ * Cancel under the navigation bar once the activity draws edge to edge.
  */
-export function WidgetConfigurationScreen({
-  widgetInfo,
-  renderWidget,
-  setResult,
-}: WidgetConfigurationScreenProps) {
+export function WidgetConfigurationScreen(props: WidgetConfigurationScreenProps) {
+  return (
+    <SafeAreaProvider>
+      <TimerChooser {...props} />
+    </SafeAreaProvider>
+  );
+}
+
+function TimerChooser({ widgetInfo, renderWidget, setResult }: WidgetConfigurationScreenProps) {
+  const insets = useSafeAreaInsets();
   const deviceScheme = useColorScheme();
   const [scheme, setScheme] = useState<'light' | 'dark'>(deviceScheme === 'dark' ? 'dark' : 'light');
   const [timers, setTimers] = useState<Timer[] | null>(null);
@@ -71,9 +81,23 @@ export function WidgetConfigurationScreen({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.background,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          // A phone on its side keeps a strip clear down one edge for the
+          // camera cutout or the navigation bar; the list steps in from it.
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
+      ]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text }]}>Choose a timer</Text>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
+          Choose a timer
+        </Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           {WIDGET_LABELS[widgetInfo.widgetName as WidgetName] ?? 'Widget'}
         </Text>
@@ -135,11 +159,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
   },
   title: {
-    fontSize: 22,
+    ...Type.heading,
     fontWeight: '700',
   },
   subtitle: {
-    fontSize: 14,
+    ...Type.secondary,
     marginTop: Spacing.half,
   },
   centred: {
@@ -148,8 +172,7 @@ const styles = StyleSheet.create({
   empty: {
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.four,
-    fontSize: 15,
-    lineHeight: 22,
+    ...Type.body,
   },
   row: {
     flexDirection: 'row',
@@ -165,13 +188,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeText: {
-    fontSize: 13,
+    fontSize: Type.secondary.fontSize,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   label: {
     flex: 1,
-    fontSize: 16,
+    ...Type.body,
     fontWeight: '600',
   },
   cancel: {
@@ -180,7 +203,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   cancelText: {
-    fontSize: 16,
+    ...Type.body,
     fontWeight: '600',
   },
 });
