@@ -82,7 +82,8 @@ function createTimer(draft: TimerDraft, order: number): Timer {
   };
 }
 
-function reducer(state: State, action: Action): State {
+/** Exported for tests; screens go through `useTimers`. */
+export function timersReducer(state: State, action: Action): State {
   switch (action.type) {
     case 'hydrate':
       return { timers: reindex(sortByOrder(action.timers)), hydrated: true };
@@ -109,13 +110,18 @@ function reducer(state: State, action: Action): State {
         }
         // Moving the event date re-bases the elapsed time on the new date, so
         // any time accrued against the old one is discarded rather than added.
+        // A running timer runs from the new date again. A stopped one stays
+        // stopped but freezes at the time since the new date, read from the
+        // ticker like Stop does, rather than dropping to zero.
         return {
           ...timer,
           label: action.draft.label.trim(),
           color: action.draft.color,
           categoryId: action.draft.categoryId,
           startDateTime: action.draft.startDateTime,
-          accumulatedMs: 0,
+          accumulatedMs: timer.isRunning
+            ? 0
+            : currentTick() - Date.parse(action.draft.startDateTime),
           runningSince: timer.isRunning ? action.draft.startDateTime : null,
         };
       });
@@ -228,7 +234,7 @@ const TimersContext = createContext<TimersContextValue | null>(null);
 const SAVE_DEBOUNCE_MS = 250;
 
 export function TimersProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(timersReducer, initialState);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

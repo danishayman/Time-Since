@@ -38,7 +38,8 @@ function isTimer(value: unknown): value is Timer {
     typeof t.createdAt === 'string' &&
     !Number.isNaN(Date.parse(t.createdAt)) &&
     typeof t.isRunning === 'boolean' &&
-    (t.runningSince === null || typeof t.runningSince === 'string') &&
+    (t.runningSince === null ||
+      (typeof t.runningSince === 'string' && !Number.isNaN(Date.parse(t.runningSince)))) &&
     typeof t.accumulatedMs === 'number' &&
     Number.isFinite(t.accumulatedMs) &&
     typeof t.order === 'number' &&

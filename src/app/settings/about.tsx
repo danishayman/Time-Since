@@ -35,6 +35,9 @@ export default function AboutScreen() {
         <ThemedText type="small" themeColor="textSecondary" style={styles.tagline}>
           Time Since keeps everything on this device.
         </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.credit}>
+          Icons by Font Awesome Free, licensed CC BY 4.0.
+        </ThemedText>
       </ScreenScrollView>
     </ThemedView>
   );
@@ -52,6 +55,11 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     textAlign: 'center',
     paddingTop: Spacing.five,
+    paddingHorizontal: Spacing.four,
+  },
+  credit: {
+    textAlign: 'center',
+    paddingTop: Spacing.two,
     paddingHorizontal: Spacing.four,
   },
 });
