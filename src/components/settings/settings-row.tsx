@@ -7,10 +7,10 @@ import { Spacing } from '@/constants/theme';
 import { useLargeText } from '@/hooks/use-large-text';
 import { useTheme } from '@/hooks/use-theme';
 
-const ICON_SIZE = 24;
+const ICON_SIZE = 26;
 
 /** Smaller and quieter than the row's own icon, as the iOS disclosure indicator is. */
-const DISCLOSURE_SIZE = 14;
+const DISCLOSURE_SIZE = 16;
 
 /** iOS convention, mirrored on web; see `navigates`. */
 const SHOW_DISCLOSURE = Platform.OS !== 'android';

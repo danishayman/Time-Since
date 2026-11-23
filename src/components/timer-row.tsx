@@ -71,7 +71,7 @@ export function TimerRow({
 
       <Pressable
         onPressIn={onDragStart}
-        // The glyph is 22 high; this brings the area that starts a drag up to
+        // The glyph is 24 high; this brings the area that starts a drag up to
         // 48, inside the row's own padding so it never overlaps the badge.
         hitSlop={HANDLE_SLOP}
         // Dragging needs a held touch a screen reader cannot give, so the
@@ -80,7 +80,7 @@ export function TimerRow({
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
         style={styles.handle}>
-        <AppIcon name="reorder" size={22} color={theme.textSecondary} />
+        <AppIcon name="reorder" size={24} color={theme.textSecondary} />
       </Pressable>
 
       {/* Side by side normally; at the largest text sizes the badge goes above
@@ -111,7 +111,7 @@ export function TimerRow({
   );
 }
 
-const HANDLE_SLOP = { top: 13, bottom: 13, left: Spacing.three, right: Spacing.two };
+const HANDLE_SLOP = { top: 12, bottom: 12, left: Spacing.three, right: Spacing.two };
 
 const styles = StyleSheet.create({
   row: {

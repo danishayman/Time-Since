@@ -35,7 +35,7 @@ export function ActionButton({ icon, label, onPress, disabled = false, destructi
         disabled && styles.disabled,
         pressed && styles.pressed,
       ]}>
-      <AppIcon name={icon} size={26} color={color} scaleWithText />
+      <AppIcon name={icon} size={30} color={color} scaleWithText />
       <ThemedText type="small" style={[large ? styles.labelWide : styles.label, { color }]}>
         {label}
       </ThemedText>

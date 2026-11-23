@@ -40,7 +40,7 @@ export function HeaderButton({
           {title}
         </ThemedText>
       ) : icon ? (
-        <AppIcon name={icon} size={24} color={theme.text} />
+        <AppIcon name={icon} size={26} color={theme.text} />
       ) : null}
     </Pressable>
   );

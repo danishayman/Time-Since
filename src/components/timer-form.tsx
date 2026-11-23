@@ -125,7 +125,7 @@ export function TimerForm({ values, onChange }: Props) {
           }
           accessibilityHint="Opens a date and time picker"
           style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
-          <AppIcon name="calendar" size={32} color={theme.text} scaleWithText />
+          <AppIcon name="calendar" size={36} color={theme.text} scaleWithText />
           <ThemedText type="default">
             {values.startDateTime
               ? formatTimestamp(values.startDateTime, false)

@@ -1,130 +1,137 @@
 """Builds every icon and splash asset for Time Since from one geometry.
 
-The mark: a dot at twelve o'clock (the moment) and an arc leaving it clockwise
-(the time since), drawn as filled shapes so PNG and SVG match exactly.
+The mark: three rounded bars stacked and left-aligned, each in a colour from the
+timer palette, at different lengths. It is the home list in miniature: a row per
+timer, with how long it has run read as length.
 
 Run from the project root:  python scripts/brand-assets.py . preview.png
 Needs Pillow. Writes assets/images/* and assets/expo.icon/Assets/time-since-mark.svg.
 """
-import math, os, sys
+import os, sys
 from PIL import Image, ImageDraw
 
 ROOT = sys.argv[1]           # project root
 OUT_PREVIEW = sys.argv[2]    # preview sheet path
 
-# Geometry in units of the mark's own frame, where the ring's centreline radius is 1.
-W = 0.283        # band width
-DOT = 0.26       # dot radius
-GAP = 30         # degrees between the dot and where the band starts
-SWEEP = 270      # degrees from twelve o'clock to where the band ends
-SS = 4
-NUDGE_X = 0.04
-NUDGE_Y = 0.06
+# Geometry in units of the mark's own frame, where the longest bar is 1 wide.
+BAR_H = 0.217                # bar thickness
+GAP = 0.083                  # space between bars
+# (length, colour) top to bottom. Colours are `PALETTE` entries in
+# src/constants/palette.ts: pale pink, green, blue.
+BARS = [
+    (1.000, (0xF7, 0xC8, 0xD9, 255)),
+    (0.667, (0x5C, 0xB5, 0x66, 255)),
+    (0.867, (0x3F, 0xB8, 0xF0, 255)),
+]
+MARK_H = len(BARS) * BAR_H + (len(BARS) - 1) * GAP
+SS = 4                       # supersampling for clean edges
 
-def pt(c, r, deg):
-    a = math.radians(deg - 90)  # 0 deg = twelve o'clock, clockwise
-    return (c[0] + r * math.cos(a), c[1] + r * math.sin(a))
+BACKGROUND = (0x16, 0x17, 0x1A, 255)   # the app's dark `background` token
+WHITE = (255, 255, 255, 255)
+CLEAR = (0, 0, 0, 0)
 
-def band_polygon(c, R, steps=900):
-    ro, ri = R * (1 + W / 2), R * (1 - W / 2)
-    a0, a1 = GAP, SWEEP
-    pts = [pt(c, ro, a0 + (a1 - a0) * i / steps) for i in range(steps + 1)]
-    cap_c = pt(c, R, a1)
-    for i in range(1, 60):  # round cap at the end, outer -> inner
-        t = a1 + 180 * i / 60
-        pts.append(pt(cap_c, R * W / 2, t))
-    pts += [pt(c, ri, a1 - (a1 - a0) * i / steps) for i in range(steps + 1)]
-    cap_c = pt(c, R, a0)
-    for i in range(1, 60):  # round cap at the start, inner -> outer
-        t = a0 + 180 + 180 * i / 60
-        pts.append(pt(cap_c, R * W / 2, t))
-    return pts
 
-def draw_mark(size, R_px, fg, bg=(0, 0, 0, 0), centre=None):
-    """R_px: ring centreline radius in output pixels."""
+def bar_rects(x0, y0, width):
+    """Rectangles for the bars of a mark `width` wide with its top-left at (x0, y0)."""
+    rects, y = [], y0
+    for length, colour in BARS:
+        rects.append(((x0, y, x0 + width * length, y + width * BAR_H), colour))
+        y += width * (BAR_H + GAP)
+    return rects
+
+
+def draw_mark(size, width_frac, bg=CLEAR, ink=None):
+    """The mark centred on a `size` square, `width_frac` of it wide.
+
+    `ink` paints every bar one colour, for the monochrome layer.
+    """
     S = size * SS
     im = Image.new('RGBA', (S, S), bg)
     d = ImageDraw.Draw(im)
-    # Optical centre: the dot sits above the ring and the top-left quadrant is
-    # open, so the ring is nudged down and a touch left of the canvas centre.
-    c = centre or (S / 2 - R_px * SS * NUDGE_X, S / 2 + R_px * SS * NUDGE_Y)
-    R = R_px * SS
-    d.polygon(band_polygon(c, R), fill=fg)
-    dc = pt(c, R, 0)
-    d.ellipse([dc[0] - R * DOT, dc[1] - R * DOT, dc[0] + R * DOT, dc[1] + R * DOT], fill=fg)
+    w = S * width_frac
+    x0, y0 = (S - w) / 2, (S - w * MARK_H) / 2
+    radius = w * BAR_H / 2
+    for (x1, y1, x2, y2), colour in bar_rects(x0, y0, w):
+        d.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=ink or colour)
     return im.resize((size, size), Image.LANCZOS)
 
-def extent(R):
-    """Height of the mark (dot top to ring bottom) for centreline radius R."""
-    return R * (1 + DOT) + R * (1 + W / 2)
 
-BLACK = (0, 0, 0, 255)
-WHITE = (255, 255, 255, 255)
+def draw_tile(size, width_frac):
+    """The app icon as a rounded tile, for the splash screens."""
+    S = size * SS
+    tile = Image.new('RGBA', (S, S), CLEAR)
+    ImageDraw.Draw(tile).rounded_rectangle([0, 0, S - 1, S - 1], radius=S * 0.225, fill=BACKGROUND)
+    tile = tile.resize((size, size), Image.LANCZOS)
+    tile.alpha_composite(draw_mark(size, width_frac))
+    return tile
+
+
 img = os.path.join(ROOT, 'assets', 'images')
 
-# App icon (Android legacy, web manifest): mark at ~58% of the square.
-icon = draw_mark(1024, 1024 * 0.58 / extent(1), WHITE, BLACK)
+# App icon (Android legacy, web manifest): full bleed, the platform rounds it.
+icon = draw_mark(1024, 0.60, BACKGROUND)
 icon.save(os.path.join(img, 'icon.png'))
 
-# Android adaptive icon: 512 foreground, kept inside the 66/108 safe circle.
-fg = draw_mark(512, 512 * 0.46 / extent(1), WHITE)
+# Android adaptive icon. The mark's corners have to stay inside the 66/108 safe
+# circle, which a 0.46-wide mark does with room for the launcher's own crop.
+fg = draw_mark(512, 0.46)
 fg.save(os.path.join(img, 'android-icon-foreground.png'))
-Image.new('RGBA', (512, 512), BLACK).save(os.path.join(img, 'android-icon-background.png'))
-mono = draw_mark(432, 432 * 0.46 / extent(1), WHITE)
+Image.new('RGBA', (512, 512), BACKGROUND).save(os.path.join(img, 'android-icon-background.png'))
+# Themed icons recolour this layer themselves, so it is one flat ink.
+mono = draw_mark(432, 0.46, ink=WHITE)
 mono.save(os.path.join(img, 'android-icon-monochrome.png'))
 
-# Splash: the mark alone, tight, black for light mode and white for dark.
-def tight(im):
-    return im.crop(im.getbbox())
-splash = tight(draw_mark(1200, 1200 * 0.8 / extent(1), BLACK))
+# Splash: the icon as a tile on both. The pale pink bar all but vanishes on a
+# white splash, so the light one carries its own dark ground; on the dark splash
+# the tile is the same colour as the screen and only the bars show.
+splash = draw_tile(1200, 0.60)
 splash.save(os.path.join(img, 'splash-icon.png'))
-splash_dark = tight(draw_mark(1200, 1200 * 0.8 / extent(1), WHITE))
-splash_dark.save(os.path.join(img, 'splash-icon-dark.png'))
+splash.save(os.path.join(img, 'splash-icon-dark.png'))
 
 # Favicon: bigger in its square, since 48px has no room to spare.
-draw_mark(48, 48 * 0.74 / extent(1), WHITE, BLACK).save(os.path.join(img, 'favicon.png'))
+draw_mark(48, 0.74, BACKGROUND).save(os.path.join(img, 'favicon.png'))
 
-# iOS Icon Composer layer: white filled paths, in points on the 1024 canvas.
-R = 1024 * 0.58 / extent(1)
-ro, ri = R * (1 + W / 2), R * (1 - W / 2)
-cap = R * W / 2
-# Bounds of the mark around the ring centre at (0, 0).
-xmin, xmax, ymin, ymax = -ro, ro, -R * (1 + DOT), ro
-# The point that should sit at the canvas centre, relative to the ring centre.
-ox, oy = R * NUDGE_X, -R * NUDGE_Y
-half_w = max(ox - xmin, xmax - ox) + 2
-half_h = max(oy - ymin, ymax - oy) + 2
-width, height = 2 * half_w, 2 * half_h
-c = (half_w - ox, half_h - oy)
-def f(p): return f'{p[0]:.2f} {p[1]:.2f}'
-large = 1 if SWEEP - GAP > 180 else 0
-o0, o1 = pt(c, ro, GAP), pt(c, ro, SWEEP)
-i0, i1 = pt(c, ri, GAP), pt(c, ri, SWEEP)
-d = (f'M {f(o0)} A {ro:.2f} {ro:.2f} 0 {large} 1 {f(o1)} '
-     f'A {cap:.2f} {cap:.2f} 0 0 1 {f(i1)} '
-     f'A {ri:.2f} {ri:.2f} 0 {large} 0 {f(i0)} '
-     f'A {cap:.2f} {cap:.2f} 0 0 1 {f(o0)} Z')
-dot = pt(c, R, 0)
-svg = (f'<svg width="{width:.0f}" height="{height:.0f}" viewBox="0 0 {width:.2f} {height:.2f}" '
-       f'fill="none" xmlns="http://www.w3.org/2000/svg">\n'
-       f'<path d="{d}" fill="white"/>\n'
-       f'<circle cx="{dot[0]:.2f}" cy="{dot[1]:.2f}" r="{R * DOT:.2f}" fill="white"/>\n'
-       f'</svg>\n')
+# iOS Icon Composer layer: the bars as filled shapes, in points on the 1024
+# canvas, cropped to the mark so Icon Composer centres it.
+w = 1024 * 0.60
+h = w * MARK_H
+radius = w * BAR_H / 2
+shapes = ''.join(
+    f'<rect x="{x1:.2f}" y="{y1:.2f}" width="{x2 - x1:.2f}" height="{y2 - y1:.2f}" '
+    f'rx="{radius:.2f}" fill="#{c[0]:02X}{c[1]:02X}{c[2]:02X}"/>\n'
+    for (x1, y1, x2, y2), c in bar_rects(0, 0, w)
+)
+svg = (f'<svg width="{w:.0f}" height="{h:.0f}" viewBox="0 0 {w:.2f} {h:.2f}" '
+       f'fill="none" xmlns="http://www.w3.org/2000/svg">\n{shapes}</svg>\n')
 assets = os.path.join(ROOT, 'assets', 'expo.icon', 'Assets')
 with open(os.path.join(assets, 'time-since-mark.svg'), 'w', newline='\n') as fh:
     fh.write(svg)
-print('svg', round(width), round(height))
+print('svg', round(w), round(h))
 
-# Preview sheet: icon, adaptive foreground on black in a circle mask, mono, splash light/dark, favicon x4.
-sheet = Image.new('RGBA', (6 * 260, 260), (140, 140, 140, 255))
+# Preview sheet: icon, adaptive in a circle mask, adaptive in a squircle-ish
+# rounded mask, mono, splash light, splash dark, favicon x4, icon at 48 and 24.
+GREY = (140, 140, 140, 255)
+sheet = Image.new('RGBA', (8 * 260, 260), GREY)
 def fit(im): return im.resize((240, 240), Image.LANCZOS)
 sheet.paste(fit(icon), (10, 10))
-ad = Image.new('RGBA', (512, 512), BLACK); ad.alpha_composite(fg)
-mask = Image.new('L', (512, 512), 0); ImageDraw.Draw(mask).ellipse([0, 0, 511, 511], fill=255)
-adc = Image.new('RGBA', (512, 512), (140, 140, 140, 255)); adc.paste(ad, (0, 0), mask)
-sheet.paste(fit(adc), (270, 10))
-mb = Image.new('RGBA', (432, 432), (60, 60, 60, 255)); mb.alpha_composite(mono); sheet.paste(fit(mb), (530, 10))
-sl = Image.new('RGBA', (240, 240), WHITE); s = splash.copy(); s.thumbnail((110, 110)); sl.alpha_composite(s, ((240 - s.width) // 2, (240 - s.height) // 2)); sheet.paste(sl, (790, 10))
-sd = Image.new('RGBA', (240, 240), (0x16, 0x17, 0x1A, 255)); s = splash_dark.copy(); s.thumbnail((110, 110)); sd.alpha_composite(s, ((240 - s.width) // 2, (240 - s.height) // 2)); sheet.paste(sd, (1050, 10))
-fv = Image.open(os.path.join(img, 'favicon.png')).resize((192, 192), Image.NEAREST); sheet.paste(fv, (1320, 34))
+ad = Image.new('RGBA', (512, 512), BACKGROUND); ad.alpha_composite(fg)
+for i, shape in enumerate(('circle', 'rounded')):
+    mask = Image.new('L', (512, 512), 0)
+    if shape == 'circle':
+        ImageDraw.Draw(mask).ellipse([0, 0, 511, 511], fill=255)
+    else:
+        ImageDraw.Draw(mask).rounded_rectangle([0, 0, 511, 511], radius=120, fill=255)
+    out = Image.new('RGBA', (512, 512), GREY); out.paste(ad, (0, 0), mask)
+    sheet.paste(fit(out), (270 + 260 * i, 10))
+mb = Image.new('RGBA', (432, 432), (60, 60, 60, 255)); mb.alpha_composite(mono); sheet.paste(fit(mb), (790, 10))
+for i, bg in enumerate((WHITE, BACKGROUND)):
+    panel = Image.new('RGBA', (240, 240), bg)
+    s = splash.copy(); s.thumbnail((96, 96), Image.LANCZOS)
+    panel.alpha_composite(s, ((240 - s.width) // 2, (240 - s.height) // 2))
+    sheet.paste(panel, (1050 + 260 * i, 10))
+fv = Image.open(os.path.join(img, 'favicon.png')).resize((192, 192), Image.NEAREST); sheet.paste(fv, (1570, 34))
+small = Image.new('RGBA', (240, 240), (235, 235, 235, 255))
+small.alpha_composite(icon.resize((48, 48), Image.LANCZOS), (40, 96))
+small.alpha_composite(icon.resize((24, 24), Image.LANCZOS), (140, 108))
+sheet.paste(small, (1830, 10))
 sheet.save(OUT_PREVIEW)
