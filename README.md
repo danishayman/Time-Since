@@ -5,6 +5,19 @@ Each event gets a colored badge that counts in real time, and the list survives 
 
 Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.dev/router/introduction).
 
+## Install (Android)
+
+1. On your Android phone, open the [latest release](https://github.com/danishayman/Time-Since/releases/latest)
+   and download the `.apk` file.
+2. Open it. If Android asks, allow your browser or file manager to install unknown apps.
+3. Open Time Since and add your first timer. To add a widget, long-press your home screen and
+   pick **Widgets → Time Since**.
+
+Updates are installed the same way: download the newer `.apk` and open it, and your timers stay.
+Time Since collects no data. Everything stays on your phone; see [PRIVACY.md](PRIVACY.md).
+
+An iPhone version is planned.
+
 ## Features
 
 - A reorderable list of timers, each showing a live duration badge and a label.
@@ -26,7 +39,7 @@ Built with [Expo](https://expo.dev) SDK 57 and [Expo Router](https://docs.expo.d
   export/import.
 - Everything persists to `AsyncStorage` and reloads on launch.
 
-## Get started
+## Development
 
 1. Install dependencies
 
